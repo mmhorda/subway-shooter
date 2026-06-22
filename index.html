@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Subway Shooter — Stage 1</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div id="game-container"></div>
+
+<!-- Start Screen -->
+<div id="start-screen" class="overlay">
+  <div class="start-content">
+    <h1>SUBWAY SHOOTER</h1>
+    <p class="subtitle">Central Station — Stage 1 Prototype</p>
+    <div class="controls-hint">
+      <div><b>WASD</b> Move &nbsp; <b>Mouse</b> Look &nbsp; <b>Space</b> Jump &nbsp; <b>Shift</b> Sprint</div>
+      <div><b>1</b> Rifle &nbsp; <b>2</b> Pistol &nbsp; <b>Wheel</b> Switch &nbsp; <b>RMB</b> Zoom &nbsp; <b>R</b> Reload &nbsp; <b>MMB</b> Knife</div>
+      <div><b>Esc</b> Pause</div>
+    </div>
+    <div id="start-btn" class="start-btn">CLICK TO PLAY</div>
+  </div>
+</div>
+
+<!-- Pause Screen -->
+<div id="pause-screen" class="overlay hidden">
+  <div class="start-content">
+    <h1>PAUSED</h1>
+    <p>Click to resume</p>
+  </div>
+</div>
+
+<!-- HUD -->
+<div id="hud" class="hidden">
+  <div id="crosshair"></div>
+  <div id="hud-bottom-left">
+    <div id="weapon-name">ASSAULT RIFLE</div>
+    <div id="ammo-display">AMMO: 30 / 90</div>
+  </div>
+  <div id="hud-bottom-right">
+    <div id="debug-info"></div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="js/config.js"></script>
+<script src="js/textures.js"></script>
+<script src="js/materials.js"></script>
+<script src="js/collision.js"></script>
+<script src="js/world.js"></script>
+<script src="js/player.js"></script>
+<script src="js/weapons.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
