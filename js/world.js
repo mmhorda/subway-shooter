@@ -250,60 +250,10 @@ Game.World = (function() {
     floorPanel(roomW, rearHoleA + halfZ, 0, (-halfZ + rearHoleA) / 2);
     floorPanel(roomW, frontHoleA - rearHoleB, 0, (rearHoleB + frontHoleA) / 2);
     floorPanel(roomW, halfZ - frontHoleB, 0, (frontHoleB + halfZ) / 2);
-    var sideW = (roomW - holeW) / 2;
-    var sideX = holeHalf + sideW / 2;
-    var holeD = frontHoleB - frontHoleA;
-    floorPanel(sideW, holeD, -sideX, (frontHoleA + frontHoleB) / 2);
-    floorPanel(sideW, holeD, sideX, (frontHoleA + frontHoleB) / 2);
-    floorPanel(sideW, holeD, -sideX, (rearHoleA + rearHoleB) / 2);
-    floorPanel(sideW, holeD, sideX, (rearHoleA + rearHoleB) / 2);
-
-    // Metal safety curbs + glass walls along the stair hole edges.
-    var rimMat = new THREE.MeshPhongMaterial({ color: 0x4c5960, shininess: 70, specular: 0x888888 });
-    var glassWallMat = new THREE.MeshPhongMaterial({ color: 0x9fc8d6, transparent: true, opacity: 0.35, shininess: 90, specular: 0xffffff, side: THREE.DoubleSide });
-    var glassWallH = roomH;
-    // Side glass walls extend all the way down to the track bed (y=0) so
-    // players can't jump off the stairs sideways onto the railway tracks.
-    var trackBedY = 0;
-    var sideGlassTopY = upperFloorVisualY + glassWallH;
-    var sideGlassTotalH = sideGlassTopY - trackBedY;
-    var sideGlassCenterY = trackBedY + sideGlassTotalH / 2;
-    function addHoleRims(z0, z1, isFront) {
-      var zMid = (z0 + z1) / 2;
-      var zLen = z1 - z0;
-      // Metal rails on left/right edges (at upper floor level)
-      var leftRail = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.35, zLen), rimMat);
-      leftRail.position.set(-holeHalf - 0.08, upperFloorVisualY + 0.175, zMid);
-      worldGroup.add(leftRail);
-      var rightRail = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.35, zLen), rimMat);
-      rightRail.position.set(holeHalf + 0.08, upperFloorVisualY + 0.175, zMid);
-      worldGroup.add(rightRail);
-
-      // Left glass wall — extends from track bed (y=0) to upper room ceiling
-      var leftGlass = new THREE.Mesh(new THREE.BoxGeometry(0.05, sideGlassTotalH, zLen), glassWallMat);
-      leftGlass.position.set(-holeHalf - 0.12, sideGlassCenterY, zMid);
-      worldGroup.add(leftGlass);
-      // Right glass wall — same full height
-      var rightGlass = new THREE.Mesh(new THREE.BoxGeometry(0.05, sideGlassTotalH, zLen), glassWallMat);
-      rightGlass.position.set(holeHalf + 0.12, sideGlassCenterY, zMid);
-      worldGroup.add(rightGlass);
-
-      // Glass wall behind the stairs — at the bottom (platform edge) of the
-      // stairwell, so it's behind the player as they walk up. Doesn't block
-      // the path; acts as a back wall for the stairwell shaft.
-      var behindGlassZ = isFront ? z0 : z1;
-      var behindGlass = new THREE.Mesh(new THREE.BoxGeometry(holeW + 0.24, glassWallH, 0.05), glassWallMat);
-      behindGlass.position.set(0, upperFloorVisualY + glassWallH / 2, behindGlassZ);
-      worldGroup.add(behindGlass);
-
-      // Metal doorstep/base rail at the bottom of the back glass wall,
-      // matching the left/right side rails.
-      var backRail = new THREE.Mesh(new THREE.BoxGeometry(holeW + 0.24, 0.35, 0.16), rimMat);
-      backRail.position.set(0, upperFloorVisualY + 0.175, behindGlassZ);
-      worldGroup.add(backRail);
-    }
-    addHoleRims(frontHoleA, frontHoleB, true);
-    addHoleRims(rearHoleA, rearHoleB, false);
+    // Do not add side floor strips, glass, or rim meshes around stair holes.
+    // Those separate panels had visibly different texture seams and their
+    // matching collision/floor regions felt like invisible side barriers.
+    // Keep the stair openings clean and unambiguous.
 
     // Ceiling and boundary walls for the upper room.
     var ceiling = new THREE.Mesh(new THREE.PlaneGeometry(roomW, roomL), ceilMat);
@@ -1696,10 +1646,8 @@ Game.World = (function() {
     addUpperFloor(-uHalfX, uHalfX, -uHalfZ, rearA);
     addUpperFloor(-uHalfX, uHalfX, rearB, frontA);
     addUpperFloor(-uHalfX, uHalfX, frontB, uHalfZ);
-    addUpperFloor(-uHalfX, -uHoleHalf, frontA, frontB);
-    addUpperFloor(uHoleHalf, uHalfX, frontA, frontB);
-    addUpperFloor(-uHalfX, -uHoleHalf, rearA, rearB);
-    addUpperFloor(uHoleHalf, uHalfX, rearA, rearB);
+    // No side-floor collision panels around stair holes. The side strips caused
+    // invisible-feeling blockers and texture seams beside the stairs.
 
     // No collision for upper stair-hole glass/rail trim. These decorative
     // pieces repeatedly produced invisible-feeling blockers around the second

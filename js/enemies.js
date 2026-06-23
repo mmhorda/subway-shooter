@@ -253,8 +253,17 @@ Game.Enemies = (function() {
         climbX = platformHalfW - radius - 0.18;
       }
       if (climbX !== null && W.platformHeight <= currentY + maxStepUp + 0.1) {
-        x = climbX;
-        groundY = W.platformHeight;
+        var previousX = x - (assistX || 0);
+        var maxClimbAdvance = 0.28;
+        var deltaToClimb = climbX - previousX;
+        if (Math.abs(deltaToClimb) > maxClimbAdvance) {
+          x = previousX + Math.sign(deltaToClimb) * maxClimbAdvance;
+        } else {
+          x = climbX;
+        }
+        if (x >= -platformHalfW && x <= platformHalfW) {
+          groundY = W.platformHeight;
+        }
       }
     }
 
@@ -392,7 +401,7 @@ Game.Enemies = (function() {
       // The old check used X/Z distance only, so enemies directly below the
       // player could damage through the ceiling / upper floor.
       var dy = Math.abs((playerPos.y || 0) - group.position.y);
-      var verticalAttackRange = E.verticalAttackRange || 0.75;
+      var verticalAttackRange = E.verticalAttackRange || 0.45;
       var dist3D = Math.sqrt(dx * dx + dz * dz + dy * dy);
       if (dist3D < E.attackRange && dy <= verticalAttackRange) {
         var now = performance.now() / 1000;
