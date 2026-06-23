@@ -228,6 +228,14 @@ Game.Enemies = (function() {
     }
   }
 
+  function isUsableGroundY(y) {
+    // Track bed is y=0 and must be valid for enemies so they can drop from
+    // the platform to open rails. Solid train/world boxes still block movement
+    // through resolveCircleBox; this only controls whether a floor height is
+    // allowed after collision resolution.
+    return y >= 0;
+  }
+
   function update(dt) {
     var playerPos = Game.Player.getPosition();
     var playerX = playerPos.x;
@@ -296,7 +304,7 @@ Game.Enemies = (function() {
         newZ = resolved.z;
         var groundY = Game.Collision.getGroundHeight(newX, newZ, group.position.y);
 
-        if (groundY > 0.5) {
+        if (isUsableGroundY(groundY)) {
           group.position.x = newX;
           group.position.z = newZ;
         } else {
@@ -304,7 +312,7 @@ Game.Enemies = (function() {
           var testX = ex + mx;
           var xResolved = Game.Collision.resolveCircleBox(testX, ez, enemyRadius, group.position.y);
           var testGroundY = Game.Collision.getGroundHeight(xResolved.x, xResolved.z, group.position.y);
-          if (testGroundY > 0.5) {
+          if (isUsableGroundY(testGroundY)) {
             group.position.x = xResolved.x;
             group.position.z = xResolved.z;
           } else {
@@ -312,7 +320,7 @@ Game.Enemies = (function() {
             var testZ = ez + mz;
             var zResolved = Game.Collision.resolveCircleBox(ex, testZ, enemyRadius, group.position.y);
             testGroundY = Game.Collision.getGroundHeight(zResolved.x, zResolved.z, group.position.y);
-            if (testGroundY > 0.5) {
+            if (isUsableGroundY(testGroundY)) {
               group.position.x = zResolved.x;
               group.position.z = zResolved.z;
             }
