@@ -1701,20 +1701,20 @@ Game.World = (function() {
     addUpperFloor(-uHalfX, -uHoleHalf, rearA, rearB);
     addUpperFloor(uHoleHalf, uHalfX, rearA, rearB);
 
-    // Collision for the glass/metal stair-hole rims and walls. Side glass
-    // walls extend all the way down to y=0 (track bed) so players can't
-    // jump off the stairs sideways onto the tracks. The stair run and
-    // landing remain open.
+    // Collision for upper stair-hole side glass/rails. Keep these aligned
+    // with the visible upper-floor guard rails only. The old boxes extended
+    // from y=0 to the upper ceiling and added full-width back walls at the
+    // stair opening edge; that created weird invisible blockers around the
+    // second-floor stair ring/left/right approaches, especially while walking
+    // from ramps onto the landing. The ramp and landing remain open here.
     var upperRoomH = 6.4;
     var fullGlassTopY = stairTopY + upperRoomH;
-    C.addBox(-uHoleHalf - 0.25, -uHoleHalf + 0.05, frontA, frontB, 0, fullGlassTopY);
-    C.addBox(uHoleHalf - 0.05, uHoleHalf + 0.25, frontA, frontB, 0, fullGlassTopY);
-    C.addBox(-uHoleHalf - 0.25, -uHoleHalf + 0.05, rearA, rearB, 0, fullGlassTopY);
-    C.addBox(uHoleHalf - 0.05, uHoleHalf + 0.25, rearA, rearB, 0, fullGlassTopY);
-    // Glass wall behind front stairs (bottom/platform edge)
-    C.addBox(-uHoleHalf - 0.15, uHoleHalf + 0.15, frontA - 0.05, frontA + 0.05, stairTopY, stairTopY + upperRoomH);
-    // Glass wall behind rear stairs (bottom/platform edge)
-    C.addBox(-uHoleHalf - 0.15, uHoleHalf + 0.15, rearB - 0.05, rearB + 0.05, stairTopY, stairTopY + upperRoomH);
+    var guardMinY = stairTopY - 0.2;
+    var guardPad = 0.08;
+    C.addBox(-uHoleHalf - 0.12 - guardPad, -uHoleHalf - 0.12 + guardPad, frontA, frontB, guardMinY, fullGlassTopY);
+    C.addBox(uHoleHalf + 0.12 - guardPad, uHoleHalf + 0.12 + guardPad, frontA, frontB, guardMinY, fullGlassTopY);
+    C.addBox(-uHoleHalf - 0.12 - guardPad, -uHoleHalf - 0.12 + guardPad, rearA, rearB, guardMinY, fullGlassTopY);
+    C.addBox(uHoleHalf + 0.12 - guardPad, uHoleHalf + 0.12 + guardPad, rearA, rearB, guardMinY, fullGlassTopY);
     C.addBox(-uHalfX - 0.12, -uHalfX + 0.12, -uHalfZ, uHalfZ, upperFloorY, upperFloorY + upperRoomH);
     C.addBox(uHalfX - 0.12, uHalfX + 0.12, -uHalfZ, uHalfZ, upperFloorY, upperFloorY + upperRoomH);
     C.addBox(-uHalfX, uHalfX, -uHalfZ - 0.12, -uHalfZ + 0.12, upperFloorY, upperFloorY + upperRoomH);
