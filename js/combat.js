@@ -315,6 +315,31 @@ Game.Combat = (function() {
     Game.UI.updateScore(score);
   }
 
+
+  function healPlayer(amount) {
+    if (gameOver) return 0;
+    var before = playerHealth;
+    playerHealth = Math.min(Game.Config.player.maxHealth, playerHealth + amount);
+    updateHUD();
+    return playerHealth - before;
+  }
+
+  function refillAmmo() {
+    var W = Game.Config.weapons;
+    ammoState.rifle.current = W.rifle.maxAmmo;
+    ammoState.rifle.reserve = W.rifle.reserve;
+    ammoState.rifle.reloading = false;
+    ammoState.pistol.current = W.pistol.maxAmmo;
+    ammoState.pistol.reserve = W.pistol.reserve;
+    ammoState.pistol.reloading = false;
+    updateHUD();
+  }
+
+  function killEnemy(enemy) {
+    if (!enemy || enemy.health <= 0) return;
+    damageEnemyDirect(enemy, enemy.health + 9999);
+  }
+
   function getAmmo() { return ammoState; }
   function getPlayerHealth() { return playerHealth; }
   function getScore() { return score; }
@@ -326,6 +351,9 @@ Game.Combat = (function() {
     knife: knife,
     reload: reload,
     damagePlayer: damagePlayer,
+    healPlayer: healPlayer,
+    refillAmmo: refillAmmo,
+    killEnemy: killEnemy,
     restart: restart,
     update: update,
     updateHUD: updateHUD,
