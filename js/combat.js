@@ -273,6 +273,7 @@ Game.Combat = (function() {
 
   function triggerGameOver() {
     gameOver = true;
+    Game.Pickups.cancelOnEvent();
     if (Game.UI && Game.UI.showGameOver) {
       Game.UI.showGameOver(score);
     }
