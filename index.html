@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Subway Shooter — Stage 1</title>
+<title>Subway Shooter — Stage 2</title>
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -14,7 +14,7 @@
 <div id="start-screen" class="overlay">
   <div class="start-content">
     <h1>SUBWAY SHOOTER</h1>
-    <p class="subtitle">Central Station — Stage 1 Prototype</p>
+    <p class="subtitle">Central Station — Stage 2</p>
     <div class="controls-hint">
       <div><b>WASD</b> Move &nbsp; <b>Mouse</b> Look &nbsp; <b>Space</b> Jump &nbsp; <b>Shift</b> Sprint</div>
       <div><b>1</b> Rifle &nbsp; <b>2</b> Pistol &nbsp; <b>Wheel</b> Switch &nbsp; <b>RMB</b> Zoom &nbsp; <b>R</b> Reload &nbsp; <b>MMB</b> Knife</div>
@@ -32,17 +32,54 @@
   </div>
 </div>
 
+<!-- Game Over Screen -->
+<div id="gameover-screen" class="overlay hidden">
+  <div class="start-content">
+    <h1>GAME OVER</h1>
+    <p id="final-score" class="subtitle">SCORE: 0</p>
+    <div id="restart-btn" class="start-btn">PLAY AGAIN</div>
+  </div>
+</div>
+
 <!-- HUD -->
 <div id="hud" class="hidden">
   <div id="crosshair"></div>
+  
+  <!-- Top HUD -->
+  <div id="hud-top">
+    <div id="hud-top-left">
+      <div id="level-display">LEVEL 1</div>
+      <div id="wave-display">WAVE 1</div>
+      <div id="remaining-display">ENEMIES: 0</div>
+    </div>
+    <div id="hud-top-right">
+      <div id="score-display">SCORE: 0</div>
+    </div>
+  </div>
+
+  <!-- Health bar -->
+  <div id="hud-health">
+    <div id="health-bar-bg">
+      <div id="health-bar-fill"></div>
+    </div>
+    <div id="health-text">100 / 100</div>
+  </div>
+
+  <!-- Bottom HUD -->
   <div id="hud-bottom-left">
     <div id="weapon-name">ASSAULT RIFLE</div>
-    <div id="ammo-display">AMMO: 30 / 90</div>
+    <div id="ammo-display">AMMO: 30 / 120</div>
   </div>
   <div id="hud-bottom-right">
     <div id="debug-info"></div>
   </div>
 </div>
+
+<!-- Damage flash overlay -->
+<div id="damage-flash"></div>
+
+<!-- Hit marker -->
+<div id="hit-marker"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="js/config.js"></script>
@@ -52,6 +89,10 @@
 <script src="js/world.js"></script>
 <script src="js/player.js"></script>
 <script src="js/weapons.js"></script>
+<script src="js/enemies.js"></script>
+<script src="js/combat.js"></script>
+<script src="js/effects.js"></script>
+<script src="js/waves.js"></script>
 <script src="js/ui.js"></script>
 <script src="js/main.js"></script>
 </body>

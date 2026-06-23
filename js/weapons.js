@@ -21,17 +21,23 @@ Game.Weapons = (function() {
   var muzzleFlashTime = 0;
   var muzzleLight = null;
 
-  // Bullet tracers
-  var bullets = []; // active bullet objects
-  var MAX_BULLETS = 40;
+  // Bullet tracers — pooled meshes, shared geometry + material
+  var bullets = [];     // active bullet data {mesh, vx, vy, vz, life}
+  var bulletPool = [];  // unused meshes waiting to be reused
+  var MAX_BULLETS = 30;
   var bulletGeo = null;
-  var bulletMat = null;
+  var bulletMat = null; // single shared material for ALL bullets
 
-  // Bullet impact marks
-  var marks = []; // active decal marks
-  var MAX_MARKS = 80;
+  // Bullet impact marks — pooled meshes, shared material
+  var marks = [];      // active mark data {mesh, life}
+  var markPool = [];   // unused meshes waiting to be reused
+  var MAX_MARKS = 40;
   var markGeo = null;
+  var markMat = null;  // single shared material for ALL marks
+
+  // Raycaster + shootable whitelist (only structural objects, no decor)
   var raycaster = null;
+  var shootable = [];  // array of meshes that can be hit by bullets
 
   // Auto-fire
   var isFiring = false;
@@ -96,14 +102,32 @@ Game.Weapons = (function() {
     muzzleLight.position.set(0.15, -0.12, -0.95);
     weaponGroup.add(muzzleLight);
 
-    // Bullet geometry/material (reused for all tracers)
-    bulletGeo = new THREE.CylinderGeometry(0.012, 0.012, 0.25, 5);
-    bulletGeo.rotateX(Math.PI / 2); // align so length runs along -Z
-    bulletMat = new THREE.MeshBasicMaterial({ color: 0xfff4b0 });
+    // Bullet geometry — simple box, 2 faces, minimal triangles
+    bulletGeo = new THREE.BoxGeometry(0.02, 0.02, 0.3);
+    // Single shared material — no per-bullet allocation
+    bulletMat = new THREE.MeshBasicMaterial({
+      color: 0xfff4b0,
+      transparent: true,
+      opacity: 0.9
+    });
 
     // Bullet impact mark geometry (small flat circle)
-    markGeo = new THREE.CircleGeometry(0.06, 8);
+    markGeo = new THREE.CircleGeometry(0.06, 6);
+    // Single shared material for all marks
+    markMat = new THREE.MeshBasicMaterial({
+      color: 0x1a1a1a,
+      transparent: true,
+      opacity: 0.85,
+      depthWrite: false,
+      polygonOffset: true,
+      polygonOffsetFactor: -4,
+      side: THREE.DoubleSide
+    });
+
     raycaster = new THREE.Raycaster();
+
+    // Build shootable whitelist — only structural surfaces, skip decor
+    buildShootableList();
 
     // Start with rifle
     showWeapon('rifle');
@@ -218,6 +242,49 @@ Game.Weapons = (function() {
     return group;
   }
 
+  // --- Build shootable whitelist ---
+  // Only structural surfaces that should show bullet impacts.
+  // Skips: weapons, bullets, marks, dust, lights, signs, posters,
+  // vending machines, trash bins, benches, help booth, decorative trim.
+  function buildShootableList() {
+    if (!sceneRef) return;
+    shootable = [];
+
+    // Get the world group (first child of scene that is a Group)
+    var worldGrp = Game.World.getWorldGroup && Game.World.getWorldGroup();
+    if (!worldGrp) return;
+
+    // Tag all world meshes; we'll filter by userData
+    var children = worldGrp.children;
+    for (var i = 0; i < children.length; i++) {
+      var obj = children[i];
+      // Only add Mesh objects (skip Groups, Lights, etc.)
+      if (obj.isMesh) {
+        // Skip objects that are clearly decorative by checking material color
+        // or by explicit userData flags we'll set in world.js
+        // For now: include everything in worldGroup EXCEPT known decor
+        // We use a whitelist approach: include structural surfaces
+        var mat = obj.material;
+        if (!mat) continue;
+
+        // Skip very bright objects (lights, lamps, signage)
+        var c = mat.color;
+        if (c) {
+          var brightness = (c.r + c.g + c.b) / 3;
+          if (brightness > 0.95) continue; // lamps, lights
+        }
+
+        // Skip transparent objects (glass walls)
+        if (mat.transparent && mat.opacity < 0.5) continue;
+
+        // Skip bullet marks
+        if (obj.userData.isBulletMark) continue;
+
+        shootable.push(obj);
+      }
+    }
+  }
+
   // --- Weapon switching ---
   function showWeapon(name) {
     currentWeapon = name;
@@ -273,13 +340,7 @@ Game.Weapons = (function() {
 
   // --- Spawn a visible bullet tracer from the muzzle + raycast for impact ---
   function spawnBullet(muzzlePos) {
-    if (!sceneRef || !bulletGeo) return;
-
-    // Cap active bullets
-    if (bullets.length >= MAX_BULLETS) {
-      var old = bullets.shift();
-      sceneRef.remove(old.mesh);
-    }
+    if (!sceneRef || !bulletGeo || !bulletMat) return;
 
     // Get muzzle world position
     var muzzleLocal = new THREE.Vector3(muzzlePos.x, muzzlePos.y, muzzlePos.z);
@@ -296,27 +357,36 @@ Game.Weapons = (function() {
     forward.y += (Math.random() - 0.5) * spread;
     forward.normalize();
 
-    // Bullet speed (world units per second)
+    // Bullet speed (world units per second) — store as components, no Vector3
     var speed = 60;
-    var velocity = forward.clone().multiplyScalar(speed);
+    var vx = forward.x * speed;
+    var vy = forward.y * speed;
+    var vz = forward.z * speed;
 
-    // Create bullet mesh — small glowing tracer
-    var mat = new THREE.MeshBasicMaterial({
-      color: 0xfff4b0,
-      transparent: true,
-      opacity: 0.9
-    });
-    var mesh = new THREE.Mesh(bulletGeo, mat);
+    // Reuse from pool or create new (cap at MAX_BULLETS)
+    var mesh;
+    if (bulletPool.length > 0) {
+      mesh = bulletPool.pop();
+      mesh.visible = true;
+    } else if (bullets.length >= MAX_BULLETS) {
+      // Recycle oldest bullet
+      var old = bullets.shift();
+      sceneRef.remove(old.mesh);
+      mesh = old.mesh;
+      mesh.visible = true;
+    } else {
+      // Create new mesh with shared material
+      mesh = new THREE.Mesh(bulletGeo, bulletMat);
+      sceneRef.add(mesh);
+    }
+
     mesh.position.copy(muzzleWorld);
-
-    // Orient the tracer along its flight direction
-    mesh.lookAt(muzzleWorld.clone().add(forward));
-
-    sceneRef.add(mesh);
 
     bullets.push({
       mesh: mesh,
-      velocity: velocity,
+      vx: vx,
+      vy: vy,
+      vz: vz,
       life: 0.5 // bullet visible for 500ms
     });
 
@@ -326,11 +396,11 @@ Game.Weapons = (function() {
 
   // --- Raycast and place a bullet mark on the first surface hit ---
   function castImpact(origin, direction) {
-    if (!raycaster || !markGeo) return;
+    if (!raycaster || !markGeo || !shootable.length) return;
 
     raycaster.set(origin, direction);
     raycaster.far = 200; // generous range
-    var hits = raycaster.intersectObjects(sceneRef.children, true);
+    var hits = raycaster.intersectObjects(shootable, false);
 
     for (var i = 0; i < hits.length; i++) {
       var hit = hits[i];
@@ -356,21 +426,23 @@ Game.Weapons = (function() {
 
   // --- Place a bullet impact decal ---
   function placeMark(point, normal, hitObject) {
-    // Cap marks
-    if (marks.length >= MAX_MARKS) {
+    // Cap marks — recycle from pool
+    var mesh;
+    if (markPool.length > 0) {
+      mesh = markPool.pop();
+      mesh.visible = true;
+    } else if (marks.length >= MAX_MARKS) {
+      // Recycle oldest mark
       var old = marks.shift();
       sceneRef.remove(old.mesh);
+      mesh = old.mesh;
+      mesh.visible = true;
+    } else {
+      // Create new mesh with shared material
+      mesh = new THREE.Mesh(markGeo, markMat);
+      sceneRef.add(mesh);
     }
 
-    var mat = new THREE.MeshBasicMaterial({
-      color: 0x1a1a1a,
-      transparent: true,
-      opacity: 0.85,
-      depthWrite: false,
-      polygonOffset: true,
-      polygonOffsetFactor: -4
-    });
-    var mesh = new THREE.Mesh(markGeo, mat);
     mesh.position.copy(point);
 
     // Offset slightly off the surface to avoid z-fighting
@@ -390,11 +462,10 @@ Game.Weapons = (function() {
     mesh.lookAt(point.clone().add(n));
 
     mesh.userData.isBulletMark = true;
-    sceneRef.add(mesh);
 
     marks.push({
       mesh: mesh,
-      life: 10.0 // 10 seconds
+      life: 8.0 // 8 seconds (reduced from 10)
     });
   }
 
@@ -424,32 +495,33 @@ Game.Weapons = (function() {
       muzzleLight.intensity = 0;
     }
 
-    // Update bullet tracers
+    // Update bullet tracers — zero allocations, component math
     for (var i = bullets.length - 1; i >= 0; i--) {
       var b = bullets[i];
-      b.mesh.position.add(b.velocity.clone().multiplyScalar(dt));
+      b.mesh.position.x += b.vx * dt;
+      b.mesh.position.y += b.vy * dt;
+      b.mesh.position.z += b.vz * dt;
       b.life -= dt;
-      // Fade out in the last 0.15s
+      // Fade out in the last 0.15s — update shared material opacity
       if (b.life < 0.15) {
-        b.mesh.material.opacity = (b.life / 0.15);
-        b.mesh.material.transparent = true;
+        bulletMat.opacity = Math.max(0, b.life / 0.15) * 0.9;
+      } else {
+        bulletMat.opacity = 0.9;
       }
       if (b.life <= 0) {
-        sceneRef.remove(b.mesh);
+        b.mesh.visible = false;
+        bulletPool.push(b.mesh);
         bullets.splice(i, 1);
       }
     }
 
-    // Update bullet impact marks — fade and remove after 10s
+    // Update bullet impact marks — fade via shared material
     for (var mi = marks.length - 1; mi >= 0; mi--) {
       var mk = marks[mi];
       mk.life -= dt;
-      if (mk.life < 2.0) {
-        // Fade out in the last 2 seconds
-        mk.mesh.material.opacity = (mk.life / 2.0) * 0.85;
-      }
       if (mk.life <= 0) {
-        sceneRef.remove(mk.mesh);
+        mk.mesh.visible = false;
+        markPool.push(mk.mesh);
         marks.splice(mi, 1);
       }
     }
@@ -526,6 +598,14 @@ Game.Weapons = (function() {
     return weaponData[currentWeapon];
   }
 
+  function getShootable() {
+    return shootable;
+  }
+
+  function addImpactMark(point, normal) {
+    placeMark(point, normal, null);
+  }
+
   return {
     init: init,
     update: update,
@@ -538,6 +618,8 @@ Game.Weapons = (function() {
     knife: knife,
     getCurrentWeapon: getCurrentWeapon,
     getData: getData,
-    getWeaponGroup: function() { return weaponGroup; }
+    getWeaponGroup: function() { return weaponGroup; },
+    getShootable: getShootable,
+    addImpactMark: addImpactMark
   };
 })();

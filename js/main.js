@@ -1,5 +1,6 @@
 /*
  * main.js — Game initialization, input handling, main loop
+ * Stage 2: combat, enemies, waves, effects
  */
 
 window.Game = window.Game || {};
@@ -17,6 +18,10 @@ window.Game = window.Game || {};
 
   var zoomActive = false;
   var currentFov = 90;
+
+  // Combat input state
+  var mouse1Down = false;
+  var lastSemiShot = 0;
 
   function initRenderer() {
     var R = Game.Config.renderer;
@@ -43,6 +48,18 @@ window.Game = window.Game || {};
     // Init weapons (attaches weaponGroup to camera)
     Game.Weapons.init(camera);
 
+    // Init enemies
+    Game.Enemies.init(scene);
+
+    // Init combat
+    Game.Combat.init(camera, scene);
+
+    // Init effects
+    Game.Effects.init(scene);
+
+    // Init waves
+    Game.Waves.init();
+
     // Lightweight debug handle for browser QA/dev inspection.
     Game.Debug = { scene: scene, camera: camera, renderer: renderer };
   }
@@ -58,7 +75,7 @@ window.Game = window.Game || {};
       if (e.code === 'Digit2') Game.Weapons.switchTo('pistol');
 
       // Reload
-      if (e.code === 'KeyR') Game.Weapons.reload();
+      if (e.code === 'KeyR') Game.Combat.reload();
     });
 
     window.addEventListener('keyup', function(e) {
@@ -75,11 +92,12 @@ window.Game = window.Game || {};
       if (!Game.UI.hasStarted() || Game.UI.isPaused()) return;
 
       switch(e.button) {
-        case 0: // Left click — fire (auto for rifle, semi for pistol)
-          Game.Weapons.startFire();
+        case 0: // Left click — fire
+          mouse1Down = true;
+          Game.Combat.fire();
           break;
         case 1: // Middle click — knife
-          Game.Weapons.knife();
+          Game.Combat.knife();
           e.preventDefault();
           break;
         case 2: // Right click — zoom
@@ -91,7 +109,7 @@ window.Game = window.Game || {};
 
     document.addEventListener('mouseup', function(e) {
       if (e.button === 0) {
-        Game.Weapons.stopFire();
+        mouse1Down = false;
       }
       if (e.button === 2) {
         zoomActive = false;
@@ -167,12 +185,40 @@ window.Game = window.Game || {};
 
     var dt = Math.min(clock.getDelta(), 0.1); // Cap delta
 
-    if (running && !Game.UI.isPaused()) {
+    if (running && !Game.UI.isPaused() && !Game.Combat.isGameOver()) {
       // Update player
       Game.Player.update(dt);
 
+      // Auto-fire for rifle while mouse1 held
+      if (mouse1Down && Game.Weapons.getCurrentWeapon() === 'rifle') {
+        var now = performance.now() / 1000;
+        var fireRate = Game.Config.weapons.rifle.fireRate;
+        if (now - lastSemiShot >= fireRate) {
+          Game.Combat.fire();
+          lastSemiShot = now;
+        }
+      }
+
+      // Semi-auto pistol: only fires on press (handled in mousedown)
+      // For semi-auto, track the last shot time to prevent rapid spam
+      if (Game.Weapons.getCurrentWeapon() === 'pistol') {
+        lastSemiShot = performance.now() / 1000;
+      }
+
       // Update weapons
       Game.Weapons.update(dt);
+
+      // Update combat
+      Game.Combat.update(dt);
+
+      // Update enemies
+      Game.Enemies.update(dt);
+
+      // Update waves
+      Game.Waves.update(dt);
+
+      // Update effects
+      Game.Effects.update(dt);
 
       // Update dust particles
       Game.World.updateDust(dt);
@@ -215,6 +261,20 @@ window.Game = window.Game || {};
     Game.UI.onResume(function() {
       resumeGame();
     });
+
+    // Restart handler
+    Game.UI.onRestart(function() {
+      Game.Combat.restart();
+      Game.Player.setPaused(false);
+      Game.Player.setLocked(true);
+      requestLock();
+      running = true;
+      Game.UI.hidePause();
+      Game.Combat.updateHUD();
+    });
+
+    // Initial HUD update
+    Game.Combat.updateHUD();
 
     // Start render loop
     gameLoop();
