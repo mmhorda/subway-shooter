@@ -284,26 +284,37 @@ Game.Enemies = (function() {
           }
         }
 
-        // Try to move, with ground check
+        // Try to move, resolving against the same solid box colliders used by
+        // the player. Previously enemies only checked for floor height, so they
+        // walked straight through benches, vending machines, booths, glass,
+        // pillars, and other registered prop colliders.
+        var enemyRadius = E.radius || 0.4;
         var newX = ex + mx;
         var newZ = ez + mz;
+        var resolved = Game.Collision.resolveCircleBox(newX, newZ, enemyRadius, group.position.y);
+        newX = resolved.x;
+        newZ = resolved.z;
         var groundY = Game.Collision.getGroundHeight(newX, newZ, group.position.y);
 
         if (groundY > 0.5) {
           group.position.x = newX;
           group.position.z = newZ;
         } else {
-          // Try X only
+          // Try X only, still respecting prop/world box collision.
           var testX = ex + mx;
-          var testGroundY = Game.Collision.getGroundHeight(testX, ez, group.position.y);
+          var xResolved = Game.Collision.resolveCircleBox(testX, ez, enemyRadius, group.position.y);
+          var testGroundY = Game.Collision.getGroundHeight(xResolved.x, xResolved.z, group.position.y);
           if (testGroundY > 0.5) {
-            group.position.x = testX;
+            group.position.x = xResolved.x;
+            group.position.z = xResolved.z;
           } else {
-            // Try Z only
+            // Try Z only, still respecting prop/world box collision.
             var testZ = ez + mz;
-            testGroundY = Game.Collision.getGroundHeight(ex, testZ, group.position.y);
+            var zResolved = Game.Collision.resolveCircleBox(ex, testZ, enemyRadius, group.position.y);
+            testGroundY = Game.Collision.getGroundHeight(zResolved.x, zResolved.z, group.position.y);
             if (testGroundY > 0.5) {
-              group.position.z = testZ;
+              group.position.x = zResolved.x;
+              group.position.z = zResolved.z;
             }
           }
         }
