@@ -77,21 +77,10 @@ Game.Enemies = (function() {
       });
     }
 
-    // Front exit stairs (bottom of stairs on platform)
-    spawnLocations.push({
-      x: 0,
-      y: platformH,
-      z: pHalfL - 1,
-      source: 'front_exit'
-    });
-
-    // Rear exit stairs
-    spawnLocations.push({
-      x: 0,
-      y: platformH,
-      z: -pHalfL + 1,
-      source: 'rear_exit'
-    });
+    // Spawn only from train doors. Earlier versions also spawned at front/rear
+    // stair exits, which made enemies appear outside the train pathing setup.
+    // Keeping all spawns in the train preserves the intended behavior: train
+    // walls block them except where open doors let them exit onto the platform.
   }
 
   // Shared eye geometry (small, reused)
