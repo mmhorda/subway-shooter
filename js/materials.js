@@ -9,6 +9,27 @@ Game.Materials = (function() {
   var T = Game.Textures;
   var matCache = {};
 
+
+  function loadTexture(path, repeatX, repeatY) {
+    var tex = new THREE.TextureLoader().load(path);
+    tex.wrapS = THREE.RepeatWrapping;
+    tex.wrapT = THREE.RepeatWrapping;
+    tex.repeat.set(repeatX || 1, repeatY || 1);
+    tex.anisotropy = 4;
+    return tex;
+  }
+
+  function makePBR(asset, repeatX, repeatY, metalness, roughness) {
+    var base = 'assets/textures/polyhaven/' + asset + '/';
+    return new THREE.MeshStandardMaterial({
+      map: loadTexture(base + 'diffuse.jpg', repeatX, repeatY),
+      normalMap: loadTexture(base + 'nor_gl.jpg', repeatX, repeatY),
+      roughnessMap: loadTexture(base + 'rough.jpg', repeatX, repeatY),
+      metalness: metalness || 0,
+      roughness: roughness == null ? 0.85 : roughness
+    });
+  }
+
   function get(name) {
     if (matCache[name]) return matCache[name];
 
@@ -16,11 +37,11 @@ Game.Materials = (function() {
 
     switch(name) {
       case 'wall':
-        m = new THREE.MeshLambertMaterial({ map: T.get('wallTiles') });
+        m = makePBR('concrete_block_wall_02', 8, 3, 0, 0.9);
         break;
 
       case 'floor':
-        m = new THREE.MeshLambertMaterial({ map: T.get('concreteFloor') });
+        m = makePBR('concrete_floor_worn_001', 6, 14, 0, 0.92);
         break;
 
       case 'trackbed':
@@ -48,11 +69,11 @@ Game.Materials = (function() {
         break;
 
       case 'trainBody':
-        m = new THREE.MeshLambertMaterial({ map: T.get('trainSide') });
+        m = makePBR('blue_metal_plate', 4, 1, 0.45, 0.55);
         break;
 
       case 'metal':
-        m = new THREE.MeshPhongMaterial({ color: 0x888899, shininess: 80, specular: 0x444455 });
+        m = makePBR('blue_metal_plate', 2, 2, 0.55, 0.5);
         break;
 
       case 'darkMetal':

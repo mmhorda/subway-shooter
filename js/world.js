@@ -216,14 +216,14 @@ Game.World = (function() {
 
     // Match the lower platform floor while keeping a separate map repeat for
     // the larger upper room.
-    var floorTex = Game.Textures.get('concreteFloor');
-    if (floorTex && floorTex.clone) floorTex = floorTex.clone();
-    var floorMat = new THREE.MeshLambertMaterial({ map: floorTex });
-    if (floorMat.map && floorMat.map.repeat) {
-      floorMat.map.repeat.set(10, 18);
-      floorMat.map.needsUpdate = true;
-    }
-    var wallMat = new THREE.MeshLambertMaterial({ color: 0xb8c0c0 });
+    var floorMat = Game.Materials.get('floor').clone();
+    if (floorMat.map && floorMat.map.repeat) floorMat.map.repeat.set(10, 18);
+    if (floorMat.normalMap && floorMat.normalMap.repeat) floorMat.normalMap.repeat.set(10, 18);
+    if (floorMat.roughnessMap && floorMat.roughnessMap.repeat) floorMat.roughnessMap.repeat.set(10, 18);
+    var wallMat = Game.Materials.get('wall').clone();
+    if (wallMat.map && wallMat.map.repeat) wallMat.map.repeat.set(8, 3);
+    if (wallMat.normalMap && wallMat.normalMap.repeat) wallMat.normalMap.repeat.set(8, 3);
+    if (wallMat.roughnessMap && wallMat.roughnessMap.repeat) wallMat.roughnessMap.repeat.set(8, 3);
     var ceilMat = new THREE.MeshLambertMaterial({ color: 0x90989b });
     var pillarMat = Game.Materials.get('pillar');
     var gateMat = new THREE.MeshPhongMaterial({ color: 0x2b3740, shininess: 80, specular: 0x666666 });
@@ -484,16 +484,20 @@ Game.World = (function() {
     var rightTrackCenterX = pHalfW + trackW / 2;
 
     // Side walls (full, no openings — tunnels are at Z ends)
-    var leftWallMat = new THREE.MeshLambertMaterial({ map: Game.Textures.get('wallTiles') });
+    var leftWallMat = Game.Materials.get('wall').clone();
     if (leftWallMat.map) leftWallMat.map.repeat.set(12, 2);
+    if (leftWallMat.normalMap) leftWallMat.normalMap.repeat.set(12, 2);
+    if (leftWallMat.roughnessMap) leftWallMat.roughnessMap.repeat.set(12, 2);
     var leftWallGeo = new THREE.PlaneGeometry(halfL * 2, ceilingH);
     var leftWall = new THREE.Mesh(leftWallGeo, leftWallMat);
     leftWall.position.set(leftX, ceilingH / 2, 0);
     leftWall.rotation.y = Math.PI / 2;
     worldGroup.add(leftWall);
 
-    var rightWallMat = new THREE.MeshLambertMaterial({ map: Game.Textures.get('wallTiles') });
+    var rightWallMat = Game.Materials.get('wall').clone();
     if (rightWallMat.map) rightWallMat.map.repeat.set(12, 2);
+    if (rightWallMat.normalMap) rightWallMat.normalMap.repeat.set(12, 2);
+    if (rightWallMat.roughnessMap) rightWallMat.roughnessMap.repeat.set(12, 2);
     var rightWall = new THREE.Mesh(leftWallGeo, rightWallMat);
     rightWall.position.set(rightX, ceilingH / 2, 0);
     rightWall.rotation.y = -Math.PI / 2;
@@ -509,8 +513,10 @@ Game.World = (function() {
     var wallThickness = 0.3;
     var sillH = 0.5;
     var stairPortalHalfW = Game.Config.world.platformWidth / 2 + 0.15;
-    var wallMat = new THREE.MeshLambertMaterial({ map: Game.Textures.get('wallTiles') });
+    var wallMat = Game.Materials.get('wall').clone();
     if (wallMat.map) wallMat.map.repeat.set(10, 2);
+    if (wallMat.normalMap) wallMat.normalMap.repeat.set(10, 2);
+    if (wallMat.roughnessMap) wallMat.roughnessMap.repeat.set(10, 2);
 
     function addWallSegment(x0, x1, y0, y1) {
       if (x1 <= x0 || y1 <= y0) return;
@@ -716,7 +722,7 @@ Game.World = (function() {
     // Use a clean body material here instead of the procedural train-side texture.
     // The old texture painted fake windows/doors onto every wall segment, which made
     // real openings impossible to read. Windows/doors are now explicit geometry below.
-    var exteriorMat = new THREE.MeshPhongMaterial({ color: 0x587f93, shininess: 35, specular: 0x334455 });
+    var exteriorMat = Game.Materials.get('trainBody').clone();
     var blueBandMat = new THREE.MeshPhongMaterial({ color: 0x0e4f9a, shininess: 45, specular: 0x224466 });
     var whiteBandMat = new THREE.MeshPhongMaterial({ color: 0xe8eef1, shininess: 35, specular: 0x777777 });
     var glassMat = new THREE.MeshPhongMaterial({ color: 0x7fc8f0, transparent: true, opacity: 0.42, shininess: 100, specular: 0xffffff });
