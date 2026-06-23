@@ -225,6 +225,25 @@ Game.Enemies = (function() {
     return y >= 0;
   }
 
+  function getEnemyGroundHeight(x, z, currentY) {
+    var normalGroundY = Game.Collision.getGroundHeight(x, z, currentY);
+    var stepUpHeight = (Game.Config.enemies && Game.Config.enemies.stepUpHeight) || 1.45;
+    var climbGroundY = Game.Collision.getGroundHeight(x, z, currentY + stepUpHeight);
+    return Math.max(normalGroundY, climbGroundY);
+  }
+
+  function resolveEnemyMove(x, z, radius, currentY) {
+    var groundY = getEnemyGroundHeight(x, z, currentY);
+    var collisionY = groundY > currentY ? groundY : currentY;
+    var resolved = Game.Collision.resolveCircleBox(x, z, radius, collisionY);
+    var resolvedGroundY = getEnemyGroundHeight(resolved.x, resolved.z, currentY);
+    return {
+      x: resolved.x,
+      z: resolved.z,
+      groundY: resolvedGroundY
+    };
+  }
+
   function update(dt) {
     var playerPos = Game.Player.getPosition();
     var playerX = playerPos.x;
@@ -286,38 +305,29 @@ Game.Enemies = (function() {
         // walked straight through benches, vending machines, booths, glass,
         // pillars, and other registered prop colliders.
         var enemyRadius = E.radius || 0.4;
-        var newX = ex + mx;
-        var newZ = ez + mz;
-        var resolved = Game.Collision.resolveCircleBox(newX, newZ, enemyRadius, group.position.y);
-        newX = resolved.x;
-        newZ = resolved.z;
-        var groundY = Game.Collision.getGroundHeight(newX, newZ, group.position.y);
+        var move = resolveEnemyMove(ex + mx, ez + mz, enemyRadius, group.position.y);
 
-        if (isUsableGroundY(groundY)) {
-          group.position.x = newX;
-          group.position.z = newZ;
+        if (isUsableGroundY(move.groundY)) {
+          group.position.x = move.x;
+          group.position.z = move.z;
         } else {
-          // Try X only, still respecting prop/world box collision.
-          var testX = ex + mx;
-          var xResolved = Game.Collision.resolveCircleBox(testX, ez, enemyRadius, group.position.y);
-          var testGroundY = Game.Collision.getGroundHeight(xResolved.x, xResolved.z, group.position.y);
-          if (isUsableGroundY(testGroundY)) {
-            group.position.x = xResolved.x;
-            group.position.z = xResolved.z;
+          // Try X only, still respecting prop/world box collision and climb-up.
+          var xMove = resolveEnemyMove(ex + mx, ez, enemyRadius, group.position.y);
+          if (isUsableGroundY(xMove.groundY)) {
+            group.position.x = xMove.x;
+            group.position.z = xMove.z;
           } else {
-            // Try Z only, still respecting prop/world box collision.
-            var testZ = ez + mz;
-            var zResolved = Game.Collision.resolveCircleBox(ex, testZ, enemyRadius, group.position.y);
-            testGroundY = Game.Collision.getGroundHeight(zResolved.x, zResolved.z, group.position.y);
-            if (isUsableGroundY(testGroundY)) {
-              group.position.x = zResolved.x;
-              group.position.z = zResolved.z;
+            // Try Z only, still respecting prop/world box collision and climb-up.
+            var zMove = resolveEnemyMove(ex, ez + mz, enemyRadius, group.position.y);
+            if (isUsableGroundY(zMove.groundY)) {
+              group.position.x = zMove.x;
+              group.position.z = zMove.z;
             }
           }
         }
 
-        // Keep on ground
-        group.position.y = Game.Collision.getGroundHeight(group.position.x, group.position.z, group.position.y);
+        // Keep on ground, with the same climb-up tolerance used for movement.
+        group.position.y = getEnemyGroundHeight(group.position.x, group.position.z, group.position.y);
       }
 
       // Face player

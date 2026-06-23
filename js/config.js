@@ -86,6 +86,7 @@ Game.Config = {
     attackCooldown: 1.0, // seconds between attacks on player
     attackRange: 1.5,    // distance to damage player
     radius: 0.4,
+    stepUpHeight: 1.45,      // lets enemies climb from rails back onto platform/thresholds
     scale: 1.0,
     levelHealthScale: 1.15,   // health multiplier per level
     levelSpeedScale: 1.08,    // speed multiplier per level
