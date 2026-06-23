@@ -60,6 +60,9 @@ window.Game = window.Game || {};
     // Init waves
     Game.Waves.init();
 
+    // Init pickups (vending machines, CABOOM, etc.)
+    Game.Pickups.init(scene);
+
     // Lightweight debug handle for browser QA/dev inspection.
     Game.Debug = { scene: scene, camera: camera, renderer: renderer };
   }
@@ -69,6 +72,7 @@ window.Game = window.Game || {};
     window.addEventListener('keydown', function(e) {
       if (!Game.UI.hasStarted()) return;
       Game.Player.onKeyDown(e);
+      Game.Pickups.onKeyDown(e);
 
       // Weapon switch
       if (e.code === 'Digit1') Game.Weapons.switchTo('rifle');
@@ -80,6 +84,7 @@ window.Game = window.Game || {};
 
     window.addEventListener('keyup', function(e) {
       Game.Player.onKeyUp(e);
+      Game.Pickups.onKeyUp(e);
     });
 
     // --- Mouse move (pointer lock) ---
@@ -153,6 +158,7 @@ window.Game = window.Game || {};
       // Lost pointer lock — pause
       Game.UI.showPause();
       Game.Player.setPaused(true);
+      Game.Pickups.cancelOnEvent();
     }
   }
 
@@ -220,6 +226,9 @@ window.Game = window.Game || {};
       // Update effects
       Game.Effects.update(dt);
 
+      // Update pickups (vending machines, CABOOM, etc.)
+      Game.Pickups.update(dt);
+
       // Update dust particles
       Game.World.updateDust(dt);
 
@@ -265,6 +274,7 @@ window.Game = window.Game || {};
     // Restart handler
     Game.UI.onRestart(function() {
       Game.Combat.restart();
+      Game.Pickups.reset();
       Game.Player.setPaused(false);
       Game.Player.setLocked(true);
       requestLock();
