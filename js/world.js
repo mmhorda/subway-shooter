@@ -141,7 +141,7 @@ Game.World = (function() {
     var stepDepth = 0.32;
     // Upper room floor sits above the subway ceiling by roughly 2-3 wall-tile
     // rows, so the second floor is not embedded in the lower station ceiling.
-    var topY = ceilingH + 0.2;
+    var topY = ceilingH + 1.0;
     var rise = (topY - platformY) / stepCount;
     // Starts exactly at the platform edge so it feels like part of the platform.
     var baseZ = dir * pHalfL;
@@ -190,7 +190,7 @@ Game.World = (function() {
     // Raise the whole upper concourse above the lower station ceiling by about
     // 2-3 metro wall-tile rows. This keeps the second room clear of the subway
     // ceiling/texture layer below.
-    var stairTopY = ceilingH + 0.2;
+    var stairTopY = ceilingH + 1.0;
     // Collision stays exactly at stair-landing height. Only the visible floor
     // skin is lifted a hair so it covers lower-room texture bleed without
     // becoming a physical slab in the subway ceiling below.
@@ -250,10 +250,30 @@ Game.World = (function() {
     floorPanel(roomW, rearHoleA + halfZ, 0, (-halfZ + rearHoleA) / 2);
     floorPanel(roomW, frontHoleA - rearHoleB, 0, (rearHoleB + frontHoleA) / 2);
     floorPanel(roomW, halfZ - frontHoleB, 0, (frontHoleB + halfZ) / 2);
-    // Do not add side floor strips, glass, or rim meshes around stair holes.
-    // Those separate panels had visibly different texture seams and their
-    // matching collision/floor regions felt like invisible side barriers.
-    // Keep the stair openings clean and unambiguous.
+    // No side floor strips around stair holes: those panels caused visible
+    // texture seams and collision seams. Keep glass/rail visuals only.
+    var rimMat = new THREE.MeshPhongMaterial({ color: 0x4c5960, shininess: 70, specular: 0x888888 });
+    var glassWallMat = new THREE.MeshPhongMaterial({ color: 0x9fc8d6, transparent: true, opacity: 0.35, shininess: 90, specular: 0xffffff, side: THREE.DoubleSide });
+    var glassWallH = roomH;
+    function addHoleGlass(z0, z1, isFront) {
+      var zMid = (z0 + z1) / 2;
+      var zLen = z1 - z0;
+      var railY = upperFloorVisualY + 0.175;
+      var leftRail = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.35, zLen), rimMat);
+      leftRail.position.set(-holeHalf - 0.08, railY, zMid);
+      worldGroup.add(leftRail);
+      var rightRail = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.35, zLen), rimMat);
+      rightRail.position.set(holeHalf + 0.08, railY, zMid);
+      worldGroup.add(rightRail);
+      var leftGlass = new THREE.Mesh(new THREE.BoxGeometry(0.05, glassWallH, zLen), glassWallMat);
+      leftGlass.position.set(-holeHalf - 0.12, upperFloorVisualY + glassWallH / 2, zMid);
+      worldGroup.add(leftGlass);
+      var rightGlass = new THREE.Mesh(new THREE.BoxGeometry(0.05, glassWallH, zLen), glassWallMat);
+      rightGlass.position.set(holeHalf + 0.12, upperFloorVisualY + glassWallH / 2, zMid);
+      worldGroup.add(rightGlass);
+    }
+    addHoleGlass(frontHoleA, frontHoleB, true);
+    addHoleGlass(rearHoleA, rearHoleB, false);
 
     // Ceiling and boundary walls for the upper room.
     var ceiling = new THREE.Mesh(new THREE.PlaneGeometry(roomW, roomL), ceilMat);
@@ -1610,7 +1630,7 @@ Game.World = (function() {
     var stepCount = 18;
     var stepDepth = 0.32;
     var stairWidth = pHalfW * 2;
-    var stairTopY = ceilingH + 0.2;
+    var stairTopY = ceilingH + 1.0;
     var upperFloorY = stairTopY;
     var run = stepCount * stepDepth;
     var topLandingDepth = 2.0;
@@ -1649,11 +1669,16 @@ Game.World = (function() {
     // No side-floor collision panels around stair holes. The side strips caused
     // invisible-feeling blockers and texture seams beside the stairs.
 
-    // No collision for upper stair-hole glass/rail trim. These decorative
-    // pieces repeatedly produced invisible-feeling blockers around the second
-    // floor stair ring/left/right approaches. Boundary walls and pillars still
-    // collide; the stair/ring trim is visual-only so movement stays clean.
+    // Raised second-floor glass/rail collisions. The floor is now lifted clear
+    // of lower-ceiling texture/collider overlap, so these align with visible
+    // glass instead of feeling like hidden barriers.
     var upperRoomH = 6.4;
+    var glassMinY = upperFloorY;
+    var glassMaxY = upperFloorY + upperRoomH;
+    C.addBox(-uHoleHalf - 0.18, -uHoleHalf - 0.04, frontA, frontB, glassMinY, glassMaxY);
+    C.addBox(uHoleHalf + 0.04, uHoleHalf + 0.18, frontA, frontB, glassMinY, glassMaxY);
+    C.addBox(-uHoleHalf - 0.18, -uHoleHalf - 0.04, rearA, rearB, glassMinY, glassMaxY);
+    C.addBox(uHoleHalf + 0.04, uHoleHalf + 0.18, rearA, rearB, glassMinY, glassMaxY);
     C.addBox(-uHalfX - 0.12, -uHalfX + 0.12, -uHalfZ, uHalfZ, upperFloorY, upperFloorY + upperRoomH);
     C.addBox(uHalfX - 0.12, uHalfX + 0.12, -uHalfZ, uHalfZ, upperFloorY, upperFloorY + upperRoomH);
     C.addBox(-uHalfX, uHalfX, -uHalfZ - 0.12, -uHalfZ + 0.12, upperFloorY, upperFloorY + upperRoomH);

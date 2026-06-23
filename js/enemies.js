@@ -267,23 +267,9 @@ Game.Enemies = (function() {
       }
     }
 
-    // Secondary probe for small ledges/thresholds, after the explicit platform
-    // edge snap above. This covers door thresholds without depending on one
-    // exact frame landing inside a floor collider.
-    if (groundY <= currentY + 0.05 && (Math.abs(assistX || 0) > 0.001 || Math.abs(assistZ || 0) > 0.001)) {
-      var assistLen = Math.sqrt(assistX * assistX + assistZ * assistZ);
-      if (assistLen > 0.001) {
-        var probeDist = radius + 0.75;
-        var probeX = x + (assistX / assistLen) * probeDist;
-        var probeZ = z + (assistZ / assistLen) * probeDist;
-        var probeGroundY = getEnemyGroundHeight(probeX, probeZ, currentY);
-        if (probeGroundY > groundY + 0.2 && probeGroundY <= currentY + maxStepUp + 0.1) {
-          x = probeX;
-          z = probeZ;
-          groundY = probeGroundY;
-        }
-      }
-    }
+    // No generic ledge probe here: ramp/stair ground handles normal stairs.
+    // Extra probing made enemies rocket/teleport up stair slopes.
+
 
     var collisionY = groundY > currentY ? groundY : currentY;
     var resolved = Game.Collision.resolveCircleBox(x, z, radius, collisionY);
@@ -401,7 +387,7 @@ Game.Enemies = (function() {
       // The old check used X/Z distance only, so enemies directly below the
       // player could damage through the ceiling / upper floor.
       var dy = Math.abs((playerPos.y || 0) - group.position.y);
-      var verticalAttackRange = E.verticalAttackRange || 0.45;
+      var verticalAttackRange = E.verticalAttackRange || 0.35;
       var dist3D = Math.sqrt(dx * dx + dz * dz + dy * dy);
       if (dist3D < E.attackRange && dy <= verticalAttackRange) {
         var now = performance.now() / 1000;
