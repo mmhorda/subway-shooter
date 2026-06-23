@@ -232,8 +232,31 @@ Game.Enemies = (function() {
     return Math.max(normalGroundY, climbGroundY);
   }
 
-  function resolveEnemyMove(x, z, radius, currentY) {
+  function resolveEnemyMove(x, z, radius, currentY, assistX, assistZ) {
     var groundY = getEnemyGroundHeight(x, z, currentY);
+
+    // Enemy-only ledge assist: from rail bed, the enemy center can get stuck on
+    // the low platform curb before it ever samples the platform floor. Probe a
+    // short step in the movement direction; if that spot has a climbable higher
+    // floor, use it as the movement target and resolve collision at that height.
+    // Train walls and real props still block because their boxes extend through
+    // the higher collision height.
+    if (groundY <= currentY + 0.05 && (Math.abs(assistX || 0) > 0.001 || Math.abs(assistZ || 0) > 0.001)) {
+      var assistLen = Math.sqrt(assistX * assistX + assistZ * assistZ);
+      if (assistLen > 0.001) {
+        var probeDist = radius + 0.45;
+        var probeX = x + (assistX / assistLen) * probeDist;
+        var probeZ = z + (assistZ / assistLen) * probeDist;
+        var probeGroundY = getEnemyGroundHeight(probeX, probeZ, currentY);
+        var maxStepUp = (Game.Config.enemies && Game.Config.enemies.stepUpHeight) || 1.45;
+        if (probeGroundY > groundY + 0.2 && probeGroundY <= currentY + maxStepUp + 0.1) {
+          x = probeX;
+          z = probeZ;
+          groundY = probeGroundY;
+        }
+      }
+    }
+
     var collisionY = groundY > currentY ? groundY : currentY;
     var resolved = Game.Collision.resolveCircleBox(x, z, radius, collisionY);
     var resolvedGroundY = getEnemyGroundHeight(resolved.x, resolved.z, currentY);
@@ -305,20 +328,20 @@ Game.Enemies = (function() {
         // walked straight through benches, vending machines, booths, glass,
         // pillars, and other registered prop colliders.
         var enemyRadius = E.radius || 0.4;
-        var move = resolveEnemyMove(ex + mx, ez + mz, enemyRadius, group.position.y);
+        var move = resolveEnemyMove(ex + mx, ez + mz, enemyRadius, group.position.y, mx, mz);
 
         if (isUsableGroundY(move.groundY)) {
           group.position.x = move.x;
           group.position.z = move.z;
         } else {
           // Try X only, still respecting prop/world box collision and climb-up.
-          var xMove = resolveEnemyMove(ex + mx, ez, enemyRadius, group.position.y);
+          var xMove = resolveEnemyMove(ex + mx, ez, enemyRadius, group.position.y, mx, 0);
           if (isUsableGroundY(xMove.groundY)) {
             group.position.x = xMove.x;
             group.position.z = xMove.z;
           } else {
             // Try Z only, still respecting prop/world box collision and climb-up.
-            var zMove = resolveEnemyMove(ex, ez + mz, enemyRadius, group.position.y);
+            var zMove = resolveEnemyMove(ex, ez + mz, enemyRadius, group.position.y, 0, mz);
             if (isUsableGroundY(zMove.groundY)) {
               group.position.x = zMove.x;
               group.position.z = zMove.z;
@@ -346,8 +369,13 @@ Game.Enemies = (function() {
         enemy.healthBarFg.lookAt(playerX, enemy.healthBarFg.getWorldPosition(new THREE.Vector3()).y, playerZ);
       }
 
-      // Attack player if in range
-      if (dist < E.attackRange) {
+      // Attack player only when actually close on the same vertical level.
+      // The old check used X/Z distance only, so enemies directly below the
+      // player could damage through the ceiling / upper floor.
+      var dy = Math.abs((playerPos.y || 0) - group.position.y);
+      var verticalAttackRange = E.verticalAttackRange || 2.2;
+      var dist3D = Math.sqrt(dx * dx + dz * dz + dy * dy);
+      if (dist3D < E.attackRange && dy <= verticalAttackRange) {
         var now = performance.now() / 1000;
         if (now - enemy.lastAttack > E.attackCooldown) {
           enemy.lastAttack = now;

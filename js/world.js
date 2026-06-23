@@ -1701,20 +1701,11 @@ Game.World = (function() {
     addUpperFloor(-uHalfX, -uHoleHalf, rearA, rearB);
     addUpperFloor(uHoleHalf, uHalfX, rearA, rearB);
 
-    // Collision for upper stair-hole side glass/rails. Keep these aligned
-    // with the visible upper-floor guard rails only. The old boxes extended
-    // from y=0 to the upper ceiling and added full-width back walls at the
-    // stair opening edge; that created weird invisible blockers around the
-    // second-floor stair ring/left/right approaches, especially while walking
-    // from ramps onto the landing. The ramp and landing remain open here.
+    // No collision for upper stair-hole glass/rail trim. These decorative
+    // pieces repeatedly produced invisible-feeling blockers around the second
+    // floor stair ring/left/right approaches. Boundary walls and pillars still
+    // collide; the stair/ring trim is visual-only so movement stays clean.
     var upperRoomH = 6.4;
-    var fullGlassTopY = stairTopY + upperRoomH;
-    var guardMinY = stairTopY - 0.2;
-    var guardPad = 0.08;
-    C.addBox(-uHoleHalf - 0.12 - guardPad, -uHoleHalf - 0.12 + guardPad, frontA, frontB, guardMinY, fullGlassTopY);
-    C.addBox(uHoleHalf + 0.12 - guardPad, uHoleHalf + 0.12 + guardPad, frontA, frontB, guardMinY, fullGlassTopY);
-    C.addBox(-uHoleHalf - 0.12 - guardPad, -uHoleHalf - 0.12 + guardPad, rearA, rearB, guardMinY, fullGlassTopY);
-    C.addBox(uHoleHalf + 0.12 - guardPad, uHoleHalf + 0.12 + guardPad, rearA, rearB, guardMinY, fullGlassTopY);
     C.addBox(-uHalfX - 0.12, -uHalfX + 0.12, -uHalfZ, uHalfZ, upperFloorY, upperFloorY + upperRoomH);
     C.addBox(uHalfX - 0.12, uHalfX + 0.12, -uHalfZ, uHalfZ, upperFloorY, upperFloorY + upperRoomH);
     C.addBox(-uHalfX, uHalfX, -uHalfZ - 0.12, -uHalfZ + 0.12, upperFloorY, upperFloorY + upperRoomH);
