@@ -1359,9 +1359,20 @@ Game.World = (function() {
       glow.position.z = 0.42;
       group.add(glow);
 
+      group.name = 'vending-machine-' + i;
+      group.userData.isVendingMachine = true;
+      body.userData.isVendingMachine = true;
+      frontPanel.userData.isVendingMachine = true;
+      glow.userData.isVendingMachine = true;
+
       group.position.set(p[0], Game.Config.world.platformHeight + 1, p[1]);
       group.rotation.y = p[2];
       worldGroup.add(group);
+
+      // Register with pickups system after the mesh exists.
+      if (Game.Pickups && Game.Pickups.registerVendingMachine) {
+        Game.Pickups.registerVendingMachine(group, p[0], Game.Config.world.platformHeight + 1, p[1], glow);
+      }
     }
   }
 
