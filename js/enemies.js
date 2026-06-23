@@ -94,23 +94,28 @@ Game.Enemies = (function() {
     });
   }
 
+  // Shared eye geometry (small, reused)
+  var eyeGeo = new THREE.SphereGeometry(0.05, 4, 4);
+  // Shared health bar geometries
+  var hbBgGeo = new THREE.PlaneGeometry(0.8, 0.08);
+  var hbFgGeo = new THREE.PlaneGeometry(0.78, 0.06);
+
   function createEnemyMesh() {
     var group = new THREE.Group();
 
-    // Body
-    var body = new THREE.Mesh(bodyGeo, bodyMat.clone());
+    // Body — shared material, no clone needed
+    var body = new THREE.Mesh(bodyGeo, bodyMat);
     body.position.y = 0.9;
     body.userData.isEnemyPart = true;
     group.add(body);
 
-    // Head
-    var head = new THREE.Mesh(headGeo, headMat.clone());
+    // Head — shared material
+    var head = new THREE.Mesh(headGeo, headMat);
     head.position.y = 1.65;
     head.userData.isEnemyPart = true;
     group.add(head);
 
-    // Eyes (glowing red)
-    var eyeGeo = new THREE.SphereGeometry(0.05, 4, 4);
+    // Eyes (glowing red) — shared geometry + material
     var leftEye = new THREE.Mesh(eyeGeo, eyeMat);
     leftEye.position.set(-0.1, 1.7, -0.18);
     group.add(leftEye);
@@ -118,19 +123,19 @@ Game.Enemies = (function() {
     rightEye.position.set(0.1, 1.7, -0.18);
     group.add(rightEye);
 
-    // Arms (forward-facing threat pose)
-    var leftArm = new THREE.Mesh(armGeo, bodyMat.clone());
+    // Arms (forward-facing threat pose) — shared material
+    var leftArm = new THREE.Mesh(armGeo, bodyMat);
     leftArm.position.set(-0.45, 1.0, -0.15);
     leftArm.rotation.x = -0.5;
     leftArm.userData.isEnemyPart = true;
     group.add(leftArm);
-    var rightArm = new THREE.Mesh(armGeo, bodyMat.clone());
+    var rightArm = new THREE.Mesh(armGeo, bodyMat);
     rightArm.position.set(0.45, 1.0, -0.15);
     rightArm.rotation.x = -0.5;
     rightArm.userData.isEnemyPart = true;
     group.add(rightArm);
 
-    // Legs
+    // Legs — shared material
     var leftLeg = new THREE.Mesh(legGeo, legMat);
     leftLeg.position.set(-0.15, 0.3, 0);
     leftLeg.userData.isEnemyPart = true;
@@ -145,15 +150,13 @@ Game.Enemies = (function() {
     stripe.position.y = 0.9;
     group.add(stripe);
 
-    // Health bar background
-    var hbBgGeo = new THREE.PlaneGeometry(0.8, 0.08);
+    // Health bar background — shared geometry + material
     var hbBg = new THREE.Mesh(hbBgGeo, healthBarBgMat);
     hbBg.position.y = 2.0;
     hbBg.userData.isHealthBar = true;
     group.add(hbBg);
 
-    // Health bar foreground
-    var hbFgGeo = new THREE.PlaneGeometry(0.78, 0.06);
+    // Health bar foreground — shared geometry + material
     var hbFg = new THREE.Mesh(hbFgGeo, healthBarFgMat);
     hbFg.position.y = 2.0;
     hbFg.position.z = -0.005;
@@ -161,15 +164,10 @@ Game.Enemies = (function() {
     hbFg.userData.isHealthBarFg = true;
     group.add(hbFg);
 
-    // Collect hitbox meshes
-    var meshes = [];
-    group.traverse(function(child) {
-      if (child.isMesh && child.userData.isEnemyPart) {
-        meshes.push(child);
-      }
-    });
+    // Collect hitbox meshes directly (no traverse)
+    var meshes = [body, head, leftArm, rightArm, leftLeg, rightLeg];
 
-    return { group: group, hitboxes: meshes, healthBarFg: hbFg };
+    return { group: group, hitboxes: meshes, healthBarFg: hbFg, healthBarBg: hbBg };
   }
 
   function spawnEnemy(level) {
@@ -205,6 +203,7 @@ Game.Enemies = (function() {
       hitFlash: 0,
       hitboxes: result.hitboxes,
       healthBarFg: result.healthBarFg,
+      healthBarBg: result.healthBarBg,
       spawnSource: spawn.source,
       walkPhase: Math.random() * Math.PI * 2
     };
@@ -244,16 +243,17 @@ Game.Enemies = (function() {
       var ex = group.position.x;
       var ez = group.position.z;
 
-      // Hit flash decay
+      // Hit flash decay — direct material reference, no traverse
       if (enemy.hitFlash > 0) {
         enemy.hitFlash -= dt;
         if (enemy.hitFlash <= 0) {
-          group.traverse(function(child) {
-            if (child.isMesh && child.userData.isEnemyPart) {
-              child.material.emissive = new THREE.Color(0x000000);
-              child.material.emissiveIntensity = 0;
+          for (var h = 0; h < enemy.hitboxes.length; h++) {
+            var hm = enemy.hitboxes[h].material;
+            if (hm.emissive) {
+              hm.emissive.setHex(0x000000);
+              hm.emissiveIntensity = 0;
             }
-          });
+          }
         }
       }
 
@@ -320,12 +320,13 @@ Game.Enemies = (function() {
       var bob = Math.sin(enemy.walkPhase) * 0.05;
       group.position.y += bob;
 
-      // Health bar always faces camera (billboard)
-      group.traverse(function(child) {
-        if (child.isMesh && child.userData.isHealthBar) {
-          child.lookAt(playerX, child.position.y, playerZ);
-        }
-      });
+      // Health bar always faces camera (billboard) — direct reference, no traverse
+      if (enemy.healthBarBg) {
+        enemy.healthBarBg.lookAt(playerX, enemy.healthBarBg.getWorldPosition(new THREE.Vector3()).y, playerZ);
+      }
+      if (enemy.healthBarFg) {
+        enemy.healthBarFg.lookAt(playerX, enemy.healthBarFg.getWorldPosition(new THREE.Vector3()).y, playerZ);
+      }
 
       // Attack player if in range
       if (dist < E.attackRange) {
@@ -358,15 +359,7 @@ Game.Enemies = (function() {
       if (enemy.group && enemy.group.parent) {
         enemy.group.parent.remove(enemy.group);
       }
-      enemy.group.traverse(function(child) {
-        if (child.isMesh && child.material) {
-          if (child.material !== healthBarBgMat && child.material !== healthBarFgMat &&
-              child.material !== eyeMat && child.material !== accentMat &&
-              child.material !== legMat) {
-            child.material.dispose();
-          }
-        }
-      });
+      // No material disposal needed — all materials are shared
     }
     active = [];
     hitboxMeshes = [];

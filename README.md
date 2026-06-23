@@ -1,4 +1,4 @@
-# Subway Shooter — Stage 2
+# Subway Shooter — Stage 3
 
 A first-person shooter set in a procedural subway station, built with Three.js (r128) from CDN.
 
@@ -17,7 +17,19 @@ python3 -m http.server 8080
 # then open http://localhost:8080
 ```
 
-## Stage 2 Features
+## Stage 3 — Polish & Performance
+
+### What's New (Stage 3)
+- **Performance**: Eliminated per-frame `scene.traverse()` in enemy AI, hit flash, and health bar billboard
+- **Performance**: Removed `.clone()` on shared enemy materials (body, head, arms) — all enemies now share materials
+- **Performance**: Fixed effects.js material cloning — tracers, sparks, death effects, slash effects now use shared materials
+- **Performance**: Pre-allocated shared geometries for enemy eyes and health bars
+- **Bug fix**: Ammo state unified — weapons.js and combat.js now share a single ammo source of truth
+- **Bug fix**: Weapon viewmodel positioning consistent between build and update functions
+- **Bug fix**: Wave countdown now displays actual seconds remaining
+- **Bug fix**: HUD update throttled to prevent DOM thrashing
+- **Visual polish**: Improved start screen styling and crosshair visibility
+- **Code quality**: Removed dead code, improved comments, consistent formatting
 
 ### Combat
 - **Real gunfire** with hitscan raycasting
@@ -84,7 +96,10 @@ python3 -m http.server 8080
 subway-shooter/
   index.html          Entry point
   css/
-    style.css         All styles (Stage 2)
+    style.css         All styles (Stage 3)
+  assets/
+    textures/         Placeholder for future texture assets
+    models/           Placeholder for future model assets
   js/
     config.js         Global config & namespace
     textures.js       Procedural canvas textures
@@ -95,10 +110,10 @@ subway-shooter/
     weapons.js        Weapon viewmodels, muzzle flash, switching
     ui.js             Start screen, HUD, pause, game over
     main.js           Init, input, game loop
-    enemies.js        Enemy spawning, AI, health, hitboxes (NEW)
-    combat.js         Hitscan shooting, ammo, knife, player health (NEW)
-    effects.js        Tracers, sparks, hit markers, death effects (NEW)
-    waves.js          Wave system, level progression, spawn queuing (NEW)
+    enemies.js        Enemy spawning, AI, health, hitboxes
+    combat.js         Hitscan shooting, ammo, knife, player health
+    effects.js        Tracers, sparks, hit markers, death effects
+    waves.js          Wave system, level progression, spawn queuing
   README.md
 ```
 
@@ -112,7 +127,7 @@ subway-shooter/
 - Shared geometries and materials throughout
 - No shadow-casting lights; emissive/fake glow meshes for light effect
 - FogExp2 for mild depth
-- **No `scene.traverse()` during shooting**: dedicated `hitboxMeshes` list for raycasting
+- **No `scene.traverse()` during gameplay**: dedicated `hitboxMeshes` list for raycasting
 - **Pooled effects**: tracers, sparks, death effects use object pools with disposal
 - **Pixel ratio 1**: no shadow maps for performance
 - **Enemy cap**: 38 active enemies maximum
@@ -121,8 +136,8 @@ subway-shooter/
 ## Performance Choices
 
 - Shared geometries for all enemy parts (body, head, arms, legs)
-- Cloned materials per enemy (emissive flash needs per-instance)
-- Health bar uses simple planes (billboarded)
+- **Shared materials per enemy** (no `.clone()`) — emissive flash uses `setHex()` for reset
+- Health bar uses simple planes (billboarded via direct reference, no traverse)
 - Bullet tracers use shared cylinder geometry, pooled with max 30
 - Impact sparks pooled with max 25
 - Death effects pooled with max 10
@@ -130,6 +145,7 @@ subway-shooter/
 - Enemy separation uses simple distance check, not spatial hashing
 - Ground height checks prevent enemies falling into void
 - Effects auto-dispose after expiration
+- **No material cloning in effects.js** — all effect types use shared materials
 
 ## Known Limitations
 
@@ -146,10 +162,25 @@ subway-shooter/
 
 ## Future Stages (Not Yet Implemented)
 
-- Stage 3: Sound effects, weapon pickups, more enemy types
-- Stage 4: Cover system, destructible props, better AI
-- Stage 5: Multiplayer, networked waves
+- Stage 4: Sound effects, weapon pickups, more enemy types
+- Stage 5: Cover system, destructible props, better AI
+- Stage 6: Multiplayer, networked waves
 
 ## External Assets
 
 None. All textures are procedurally generated via canvas. No external models or sounds used.
+
+## Asset Notes
+
+The `assets/textures/` and `assets/models/` directories are provided as placeholders for future content. The game currently uses 100% procedural textures generated via Canvas 2D — no external images are required. If you want to add custom textures:
+
+1. Place texture files in `assets/textures/`
+2. Update `textures.js` to load from file paths instead of procedural generation
+3. Keep textures under 512x512 for performance
+4. Use PNG or JPG formats
+
+For 3D models:
+1. Place `.glb` files in `assets/models/`
+2. Use Three.js GLTFLoader to import
+3. Keep models under 5000 triangles for performance
+4. Prefer low-poly style consistent with the game's aesthetic

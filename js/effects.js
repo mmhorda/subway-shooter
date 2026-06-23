@@ -62,13 +62,13 @@ Game.Effects = (function() {
     var len = dir.length();
     if (len < 0.1) return;
 
-    var mesh = new THREE.Mesh(tracerGeo, tracerMat.clone());
+    var mesh = new THREE.Mesh(tracerGeo, tracerMat);
     mesh.position.copy(origin).add(endPoint).multiplyScalar(0.5);
     mesh.scale.set(1, len, 1);
     mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.normalize());
     scene.add(mesh);
 
-    tracers.push({ mesh: mesh, life: 0.25 });
+    tracers.push({ mesh: mesh, life: 0.25, maxLife: 0.25 });
   }
 
   function addImpactSpark(point, normal) {
@@ -77,11 +77,11 @@ Game.Effects = (function() {
       if (oldest.mesh.parent) oldest.mesh.parent.remove(oldest.mesh);
     }
 
-    var mesh = new THREE.Mesh(sparkGeo, sparkMat.clone());
+    var mesh = new THREE.Mesh(sparkGeo, sparkMat);
     mesh.position.copy(point).add(normal.multiplyScalar(0.05));
     scene.add(mesh);
 
-    sparks.push({ mesh: mesh, life: 0.3 });
+    sparks.push({ mesh: mesh, life: 0.3, maxLife: 0.3 });
   }
 
   function addImpactMark(point, normal) {
@@ -111,13 +111,13 @@ Game.Effects = (function() {
       if (oldest.mesh.parent) oldest.mesh.parent.remove(oldest.mesh);
     }
 
-    var mesh = new THREE.Mesh(deathGeo, deathMat.clone());
+    var mesh = new THREE.Mesh(deathGeo, deathMat);
     mesh.position.copy(position);
     mesh.position.y += 0.5;
     mesh.rotation.x = -Math.PI / 2;
     scene.add(mesh);
 
-    deathEffects.push({ mesh: mesh, life: 0.6 });
+    deathEffects.push({ mesh: mesh, life: 0.6, maxLife: 0.6 });
   }
 
   function addKnifeSlash(position) {
@@ -126,12 +126,12 @@ Game.Effects = (function() {
       if (oldest.mesh.parent) oldest.mesh.parent.remove(oldest.mesh);
     }
 
-    var mesh = new THREE.Mesh(slashGeo, slashMat.clone());
+    var mesh = new THREE.Mesh(slashGeo, slashMat);
     mesh.position.copy(position);
     mesh.position.y += 0.8;
     scene.add(mesh);
 
-    slashEffects.push({ mesh: mesh, life: 0.3 });
+    slashEffects.push({ mesh: mesh, life: 0.3, maxLife: 0.3 });
   }
 
   function update(dt) {
@@ -141,10 +141,9 @@ Game.Effects = (function() {
       t.life -= dt;
       if (t.life <= 0) {
         if (t.mesh.parent) t.mesh.parent.remove(t.mesh);
-        t.mesh.material.dispose();
         tracers.splice(i, 1);
       } else {
-        t.mesh.material.opacity = (t.life / 0.25) * 0.8;
+        t.mesh.material.opacity = (t.life / t.maxLife) * 0.8;
       }
     }
 
@@ -154,11 +153,10 @@ Game.Effects = (function() {
       s.life -= dt;
       if (s.life <= 0) {
         if (s.mesh.parent) s.mesh.parent.remove(s.mesh);
-        s.mesh.material.dispose();
         sparks.splice(i, 1);
       } else {
-        s.mesh.material.opacity = (s.life / 0.3);
-        s.mesh.scale.setScalar(1 + (1 - s.life / 0.3) * 2);
+        s.mesh.material.opacity = (s.life / s.maxLife);
+        s.mesh.scale.setScalar(1 + (1 - s.life / s.maxLife) * 2);
       }
     }
 
@@ -168,10 +166,9 @@ Game.Effects = (function() {
       d.life -= dt;
       if (d.life <= 0) {
         if (d.mesh.parent) d.mesh.parent.remove(d.mesh);
-        d.mesh.material.dispose();
         deathEffects.splice(i, 1);
       } else {
-        var t = 1 - (d.life / 0.6);
+        var t = 1 - (d.life / d.maxLife);
         d.mesh.material.opacity = (1 - t) * 0.8;
         d.mesh.scale.setScalar(1 + t * 4);
       }
@@ -183,11 +180,10 @@ Game.Effects = (function() {
       s.life -= dt;
       if (s.life <= 0) {
         if (s.mesh.parent) s.mesh.parent.remove(s.mesh);
-        s.mesh.material.dispose();
         slashEffects.splice(i, 1);
       } else {
-        s.mesh.material.opacity = (s.life / 0.3) * 0.7;
-        s.mesh.scale.setScalar(1 + (1 - s.life / 0.3) * 1.5);
+        s.mesh.material.opacity = (s.life / s.maxLife) * 0.7;
+        s.mesh.scale.setScalar(1 + (1 - s.life / s.maxLife) * 1.5);
       }
     }
 

@@ -135,13 +135,14 @@ Game.Combat = (function() {
     enemy.health -= amount;
     enemy.hitFlash = 0.15;
 
-    // Flash
-    enemy.group.traverse(function(child) {
-      if (child.isMesh && child.userData.isEnemyPart) {
-        child.material.emissive = new THREE.Color(0xffffff);
-        child.material.emissiveIntensity = 1;
+    // Flash — direct hitbox reference, no traverse
+    for (var i = 0; i < enemy.hitboxes.length; i++) {
+      var mat = enemy.hitboxes[i].material;
+      if (mat.emissive) {
+        mat.emissive.setHex(0xffffff);
+        mat.emissiveIntensity = 1;
       }
-    });
+    }
 
     // Update health bar
     var ratio = Math.max(0, enemy.health / enemy.maxHealth);
@@ -182,9 +183,7 @@ Game.Combat = (function() {
       if (enemy.group && enemy.group.parent) {
         enemy.group.parent.remove(enemy.group);
       }
-      enemy.group.traverse(function(child) {
-        if (child.isMesh && child.material) child.material.dispose();
-      });
+      // No material disposal needed — all materials are shared
     }, 300);
 
     // Score

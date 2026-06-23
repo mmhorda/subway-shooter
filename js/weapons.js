@@ -55,21 +55,17 @@ Game.Weapons = (function() {
   var knifeTime = 0;
   var knifeDuration = 0.5;
 
-  // Weapon config
+  // Weapon config (visual only — ammo is managed by combat.js)
   var weaponData = {
     rifle: {
       name: 'ASSAULT RIFLE',
-      ammo: 30,
-      maxAmmo: 30,
-      reserve: 90,
-      muzzlePos: { x: 0.15, y: -0.12, z: -0.95 }
+      muzzlePos: { x: 0.15, y: -0.12, z: -0.95 },
+      basePos: { x: 0.18, y: -0.18, z: -0.3 }
     },
     pistol: {
       name: 'PISTOL',
-      ammo: 12,
-      maxAmmo: 12,
-      reserve: 48,
-      muzzlePos: { x: 0.08, y: -0.10, z: -0.45 }
+      muzzlePos: { x: 0.08, y: -0.10, z: -0.45 },
+      basePos: { x: 0.15, y: -0.16, z: -0.25 }
     }
   };
 
@@ -300,8 +296,15 @@ Game.Weapons = (function() {
       muzzleLight.position.set(data.muzzlePos.x, data.muzzlePos.y, data.muzzlePos.z);
     }
 
-    // Update HUD
-    if (Game.UI) Game.UI.updateWeapon(data.name, data.ammo + ' / ' + data.reserve);
+    // Update HUD — read ammo from combat.js (single source of truth)
+    if (Game.UI && Game.Combat) {
+      var ammo = Game.Combat.getAmmo()[name];
+      if (ammo) {
+        var ammoStr = ammo.current + ' / ' + ammo.reserve;
+        if (ammo.reloading) ammoStr = 'RELOADING';
+        Game.UI.updateWeapon(data.name, ammoStr);
+      }
+    }
   }
 
   function switchTo(name) {
@@ -551,15 +554,8 @@ Game.Weapons = (function() {
       reloadRot = Math.sin(rProgress * Math.PI) * 0.3;
       if (reloadTime <= 0) {
         reloadTime = 0;
-        // Refill ammo for placeholder
-        var data = weaponData[currentWeapon];
-        if (data.ammo < data.maxAmmo && data.reserve > 0) {
-          var needed = data.maxAmmo - data.ammo;
-          var take = Math.min(needed, data.reserve);
-          data.ammo += take;
-          data.reserve -= take;
-          Game.UI.updateWeapon(data.name, data.ammo + ' / ' + data.reserve);
-        }
+        // Let combat.js handle the actual ammo refill
+        if (Game.Combat && Game.Combat.updateHUD) Game.Combat.updateHUD();
       }
     }
 
@@ -577,14 +573,12 @@ Game.Weapons = (function() {
     // Apply transforms to active weapon
     var activeGroup = currentWeapon === 'rifle' ? rifleGroup : pistolGroup;
     if (activeGroup) {
-      var baseX = currentWeapon === 'rifle' ? 0.18 : 0.15;
-      var baseY = currentWeapon === 'rifle' ? -0.18 : -0.16;
-      var baseZ = currentWeapon === 'rifle' ? -0.3 : -0.25;
+      var bp = weaponData[currentWeapon].basePos;
 
       activeGroup.position.set(
-        baseX,
-        baseY + recoilOffset + reloadOffset + knifeOffset,
-        baseZ + recoilOffset
+        bp.x,
+        bp.y + recoilOffset + reloadOffset + knifeOffset,
+        bp.z + recoilOffset
       );
       activeGroup.rotation.x = -recoilRotation + reloadRot + knifeRot;
     }
