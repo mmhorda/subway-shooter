@@ -108,7 +108,7 @@ Game.Config = {
   vending: {
     useDuration: 5.0,
     cooldown: 30.0,
-    range: 3.0,
+    range: 3.5,
     pickupRadius: 1.1,
     healthAmount: 35,
     pickupLifetime: 25.0,

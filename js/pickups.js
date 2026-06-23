@@ -87,8 +87,9 @@ Game.Pickups = (function() {
   }
 
   function findTargetVending() {
-    if (!Game.Player || !Game.Player.isLocked()) return null;
-    if (!Game.Debug || !Game.Debug.camera) return null;
+    if (!Game.Player || !Game.Debug || !Game.Debug.camera) return null;
+    if (Game.UI && (!Game.UI.hasStarted() || Game.UI.isPaused())) return null;
+    if (Game.Combat && Game.Combat.isGameOver && Game.Combat.isGameOver()) return null;
 
     var V = cfg();
     var playerPos = Game.Player.getPosition();
@@ -96,32 +97,61 @@ Game.Pickups = (function() {
     var origin = camera.position.clone();
     var forward = new THREE.Vector3(0, 0, -1);
     camera.getWorldDirection(forward);
+    forward.normalize();
+
+    // First try the exact crosshair raycast. This keeps the interaction feeling
+    // intentional when the player is aiming directly at the machine.
     raycaster.set(origin, forward);
-    raycaster.far = V.range + 1.5;
+    raycaster.far = V.range + 2.0;
 
     var meshes = [];
     for (var i = 0; i < vendingMachines.length; i++) {
       if (vendingMachines[i].mesh) meshes.push(vendingMachines[i].mesh);
     }
 
-    var hits = raycaster.intersectObjects(meshes, true);
-    if (!hits.length) return null;
-
-    var hitObj = hits[0].object;
-    for (var j = 0; j < vendingMachines.length; j++) {
-      var vm = vendingMachines[j];
-      var obj = hitObj;
-      while (obj) {
-        if (obj === vm.mesh) {
-          var dx = playerPos.x - vm.position.x;
-          var dz = playerPos.z - vm.position.z;
-          if (Math.sqrt(dx * dx + dz * dz) <= V.range) return vm;
-          return null;
+    var hits = meshes.length ? raycaster.intersectObjects(meshes, true) : [];
+    if (hits.length) {
+      var hitObj = hits[0].object;
+      for (var j = 0; j < vendingMachines.length; j++) {
+        var vm = vendingMachines[j];
+        var obj = hitObj;
+        while (obj) {
+          if (obj === vm.mesh) {
+            var dx = playerPos.x - vm.position.x;
+            var dz = playerPos.z - vm.position.z;
+            if (Math.sqrt(dx * dx + dz * dz) <= V.range) return vm;
+            return null;
+          }
+          obj = obj.parent;
         }
-        obj = obj.parent;
       }
     }
-    return null;
+
+    // Forgiving fallback: require proximity plus a forward-facing cone aimed at
+    // the machine center. This fixes the "I am standing at the vending machine
+    // holding E and nothing happens" failure caused by tiny mesh/raycast misses.
+    var best = null;
+    var bestDot = 0;
+    var minDot = Math.cos(THREE.MathUtils.degToRad(32));
+    for (var k = 0; k < vendingMachines.length; k++) {
+      var candidate = vendingMachines[k];
+      var cx = candidate.position.x - playerPos.x;
+      var cz = candidate.position.z - playerPos.z;
+      var dist = Math.sqrt(cx * cx + cz * cz);
+      if (dist > V.range) continue;
+
+      var toMachine = new THREE.Vector3(
+        candidate.position.x - origin.x,
+        (candidate.position.y + 0.2) - origin.y,
+        candidate.position.z - origin.z
+      ).normalize();
+      var dot = forward.dot(toMachine);
+      if (dot > minDot && dot > bestDot) {
+        best = candidate;
+        bestDot = dot;
+      }
+    }
+    return best;
   }
 
   function chooseReward() {
