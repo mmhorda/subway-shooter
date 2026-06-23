@@ -103,6 +103,23 @@ Game.Config = {
     spawnInterval: 0.6       // seconds between individual spawns
   },
 
+
+  // --- Vending machine pickups ---
+  vending: {
+    useDuration: 5.0,
+    cooldown: 30.0,
+    range: 3.0,
+    pickupRadius: 1.1,
+    healthAmount: 35,
+    pickupLifetime: 25.0,
+    caboomLifetime: 35.0,
+    rewards: {
+      healthChance: 0.50,
+      ammoChance: 0.45,
+      caboomChance: 0.05
+    }
+  },
+
   // --- Performance ---
   perf: {
     maxDustParticles: 70,
