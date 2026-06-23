@@ -23,12 +23,13 @@ Game.Collision = (function() {
   // Floor levels: tracks at y=0, platform at y=platformHeight
   // We compute ground height by checking all 'floor' type colliders.
 
-  function addBox(minX, maxX, minZ, maxZ, minY, maxY) {
+  function addBox(minX, maxX, minZ, maxZ, minY, maxY, label) {
     colliders.push({
       type: 'box',
       minX: minX, maxX: maxX,
       minZ: minZ, maxZ: maxZ,
-      minY: minY, maxY: maxY
+      minY: minY, maxY: maxY,
+      label: label || 'box'
     });
   }
 

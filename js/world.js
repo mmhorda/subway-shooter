@@ -118,6 +118,7 @@ Game.World = (function() {
 
     // --- Collision ---
     registerCollisions(W, pHalfL, pHalfW, leftWallX, rightWallX, ceilingH, stationHalfL, tunnelLen);
+    buildColliderDebugVisuals();
 
     return worldGroup;
   }
@@ -1461,6 +1462,34 @@ Game.World = (function() {
     worldGroup.add(dustParticles);
   }
 
+  // Temporary red wireframe collision debug. Shows registered box colliders so
+  // wall/tunnel blockers that protrude into the walking path are obvious.
+  function buildColliderDebugVisuals() {
+    var colliders = Game.Collision.getColliders();
+    var mat = new THREE.MeshBasicMaterial({
+      color: 0xff0000,
+      wireframe: true,
+      transparent: true,
+      opacity: 0.55,
+      depthWrite: false
+    });
+    var group = new THREE.Group();
+    group.name = 'TEMP_COLLIDER_DEBUG_RED_WIREFRAMES';
+    for (var i = 0; i < colliders.length; i++) {
+      var c = colliders[i];
+      if (c.type !== 'box') continue;
+      var w = c.maxX - c.minX;
+      var h = c.maxY - c.minY;
+      var d = c.maxZ - c.minZ;
+      if (w <= 0 || h <= 0 || d <= 0) continue;
+      var mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
+      mesh.position.set((c.minX + c.maxX) / 2, (c.minY + c.maxY) / 2, (c.minZ + c.maxZ) / 2);
+      mesh.userData.colliderLabel = c.label || 'box';
+      group.add(mesh);
+    }
+    worldGroup.add(group);
+  }
+
   function updateDust(dt) {
     if (!dustParticles) return;
     var pos = dustParticles.geometry.attributes.position;
@@ -1485,9 +1514,13 @@ Game.World = (function() {
     C.addBox(-pHalfW - edgeT, -pHalfW + edgeT, -pHalfL, pHalfL, 0, 0.3);
     C.addBox(pHalfW - edgeT, pHalfW + edgeT, -pHalfL, pHalfL, 0, 0.3);
 
-    // Side walls
-    C.addBox(leftX - 0.3, leftX + 0.3, -halfL, halfL, 0, ceilingH);
-    C.addBox(rightX - 0.3, rightX + 0.3, -halfL, halfL, 0, ceilingH);
+    // Side walls: one simple invisible collider per visible wall plane.
+    // Bias colliders outside the playable station so decorative wall tiles,
+    // posters, and blue/yellow stripe meshes stay visual-only and do not
+    // protrude into the walking path near the tracks.
+    var wallColliderT = 0.3;
+    C.addBox(leftX - wallColliderT, leftX, -halfL, halfL, 0, ceilingH, 'wall:left-side');
+    C.addBox(rightX, rightX + wallColliderT, -halfL, halfL, 0, ceilingH, 'wall:right-side');
 
     // End walls with tunnel gaps and a central stair/upper-concourse opening.
     var tunnelH = 5.5;
@@ -1498,25 +1531,26 @@ Game.World = (function() {
 
     function addEndWallCollision(z0, z1) {
       // Track-side wall segments.
-      C.addBox(leftX, leftTrackCenterX - tunnelHalfW, z0, z1, 0, ceilingH);
-      C.addBox(rightTrackCenterX + tunnelHalfW, rightX, z0, z1, 0, ceilingH);
+      C.addBox(leftX, leftTrackCenterX - tunnelHalfW, z0, z1, 0, ceilingH, 'wall:end-track-left');
+      C.addBox(rightTrackCenterX + tunnelHalfW, rightX, z0, z1, 0, ceilingH, 'wall:end-track-right');
       // Between tracks, split around the full-width stair portal.
-      C.addBox(leftTrackCenterX + tunnelHalfW, -stairPortalHalfW, z0, z1, 0, tunnelH);
-      C.addBox(stairPortalHalfW, rightTrackCenterX - tunnelHalfW, z0, z1, 0, tunnelH);
+      C.addBox(leftTrackCenterX + tunnelHalfW, -stairPortalHalfW, z0, z1, 0, tunnelH, 'wall:end-between-left');
+      C.addBox(stairPortalHalfW, rightTrackCenterX - tunnelHalfW, z0, z1, 0, tunnelH, 'wall:end-between-right');
       // Upper lintel, also split around the stair opening so upstairs access is not blocked.
-      C.addBox(leftX, -stairPortalHalfW, z0, z1, tunnelH, ceilingH);
-      C.addBox(stairPortalHalfW, rightX, z0, z1, tunnelH, ceilingH);
+      C.addBox(leftX, -stairPortalHalfW, z0, z1, tunnelH, ceilingH, 'wall:end-lintel-left');
+      C.addBox(stairPortalHalfW, rightX, z0, z1, tunnelH, ceilingH, 'wall:end-lintel-right');
     }
 
-    // Front/back walls at station ends.
-    addEndWallCollision(halfL - 0.3, halfL + 0.3);
-    addEndWallCollision(-halfL - 0.3, -halfL + 0.3);
+    // Front/back walls at station ends. Keep colliders outside the visible wall
+    // planes instead of straddling into the station.
+    addEndWallCollision(halfL, halfL + 0.3);
+    addEndWallCollision(-halfL - 0.3, -halfL);
 
     // Tunnel entrance blocks (prevent walking into tunnels — invisible)
-    C.addBox(leftTrackCenterX - tunnelHalfW, leftTrackCenterX + tunnelHalfW, halfL - 0.3, halfL + 0.3, 0, 5.5);
-    C.addBox(leftTrackCenterX - tunnelHalfW, leftTrackCenterX + tunnelHalfW, -halfL - 0.3, -halfL + 0.3, 0, 5.5);
-    C.addBox(rightTrackCenterX - tunnelHalfW, rightTrackCenterX + tunnelHalfW, halfL - 0.3, halfL + 0.3, 0, 5.5);
-    C.addBox(rightTrackCenterX - tunnelHalfW, rightTrackCenterX + tunnelHalfW, -halfL - 0.3, -halfL + 0.3, 0, 5.5);
+    C.addBox(leftTrackCenterX - tunnelHalfW, leftTrackCenterX + tunnelHalfW, halfL, halfL + 0.3, 0, 5.5, 'wall:tunnel-front-left');
+    C.addBox(leftTrackCenterX - tunnelHalfW, leftTrackCenterX + tunnelHalfW, -halfL - 0.3, -halfL, 0, 5.5, 'wall:tunnel-back-left');
+    C.addBox(rightTrackCenterX - tunnelHalfW, rightTrackCenterX + tunnelHalfW, halfL, halfL + 0.3, 0, 5.5, 'wall:tunnel-front-right');
+    C.addBox(rightTrackCenterX - tunnelHalfW, rightTrackCenterX + tunnelHalfW, -halfL - 0.3, -halfL, 0, 5.5, 'wall:tunnel-back-right');
 
     // Tunnel deep blocks (prevent walking into tunnel)
     var tunnelBlockZ = halfL + tunnelLen * 0.7;
