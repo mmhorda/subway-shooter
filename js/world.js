@@ -118,7 +118,6 @@ Game.World = (function() {
 
     // --- Collision ---
     registerCollisions(W, pHalfL, pHalfW, leftWallX, rightWallX, ceilingH, stationHalfL, tunnelLen);
-    buildColliderDebugVisuals();
 
     return worldGroup;
   }
@@ -717,10 +716,10 @@ Game.World = (function() {
     // Use a clean body material here instead of the procedural train-side texture.
     // The old texture painted fake windows/doors onto every wall segment, which made
     // real openings impossible to read. Windows/doors are now explicit geometry below.
-    var exteriorMat = new THREE.MeshLambertMaterial({ color: 0x6f8fa4 });
-    var blueBandMat = new THREE.MeshLambertMaterial({ color: 0x174d8f });
-    var whiteBandMat = new THREE.MeshLambertMaterial({ color: 0xdce7ef });
-    var glassMat = new THREE.MeshLambertMaterial({ color: 0x8fd6f3, transparent: true, opacity: 0.32 });
+    var exteriorMat = new THREE.MeshPhongMaterial({ color: 0x587f93, shininess: 35, specular: 0x334455 });
+    var blueBandMat = new THREE.MeshPhongMaterial({ color: 0x0e4f9a, shininess: 45, specular: 0x224466 });
+    var whiteBandMat = new THREE.MeshPhongMaterial({ color: 0xe8eef1, shininess: 35, specular: 0x777777 });
+    var glassMat = new THREE.MeshPhongMaterial({ color: 0x7fc8f0, transparent: true, opacity: 0.42, shininess: 100, specular: 0xffffff });
     var windowFrameMat = new THREE.MeshLambertMaterial({ color: 0x182632 });
     var rubberMat = new THREE.MeshLambertMaterial({ color: 0x17191c });
     var doorMat = new THREE.MeshLambertMaterial({ color: 0x5d7489 });
@@ -1460,34 +1459,6 @@ Game.World = (function() {
 
     dustParticles = new THREE.Points(geo, mat);
     worldGroup.add(dustParticles);
-  }
-
-  // Temporary red wireframe collision debug. Shows registered box colliders so
-  // wall/tunnel blockers that protrude into the walking path are obvious.
-  function buildColliderDebugVisuals() {
-    var colliders = Game.Collision.getColliders();
-    var mat = new THREE.MeshBasicMaterial({
-      color: 0xff0000,
-      wireframe: true,
-      transparent: true,
-      opacity: 0.55,
-      depthWrite: false
-    });
-    var group = new THREE.Group();
-    group.name = 'TEMP_COLLIDER_DEBUG_RED_WIREFRAMES';
-    for (var i = 0; i < colliders.length; i++) {
-      var c = colliders[i];
-      if (c.type !== 'box') continue;
-      var w = c.maxX - c.minX;
-      var h = c.maxY - c.minY;
-      var d = c.maxZ - c.minZ;
-      if (w <= 0 || h <= 0 || d <= 0) continue;
-      var mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
-      mesh.position.set((c.minX + c.maxX) / 2, (c.minY + c.maxY) / 2, (c.minZ + c.maxZ) / 2);
-      mesh.userData.colliderLabel = c.label || 'box';
-      group.add(mesh);
-    }
-    worldGroup.add(group);
   }
 
   function updateDust(dt) {

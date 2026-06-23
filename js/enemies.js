@@ -35,11 +35,11 @@ Game.Enemies = (function() {
     stripeGeo = new THREE.CylinderGeometry(0.37, 0.32, 0.15, 8);
 
     // Shared materials
-    bodyMat = new THREE.MeshPhongMaterial({ color: 0x8b2500, shininess: 20 });
-    headMat = new THREE.MeshPhongMaterial({ color: 0xcc8866, shininess: 10 });
-    accentMat = new THREE.MeshPhongMaterial({ color: 0xff4400, emissive: 0x331100, shininess: 30 });
-    eyeMat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
-    legMat = new THREE.MeshPhongMaterial({ color: 0x3a2a1a, shininess: 10 });
+    bodyMat = new THREE.MeshPhongMaterial({ color: 0x3b2520, emissive: 0x1a0500, shininess: 45, specular: 0x553322 });
+    headMat = new THREE.MeshPhongMaterial({ color: 0x9f6a55, emissive: 0x120505, shininess: 28, specular: 0x442211 });
+    accentMat = new THREE.MeshPhongMaterial({ color: 0xff5a1f, emissive: 0x551400, shininess: 80, specular: 0xffaa55 });
+    eyeMat = new THREE.MeshBasicMaterial({ color: 0xff2a00 });
+    legMat = new THREE.MeshPhongMaterial({ color: 0x17171a, shininess: 35, specular: 0x333333 });
 
     // Health bar materials
     healthBarBgMat = new THREE.MeshBasicMaterial({ color: 0x333333, side: THREE.DoubleSide });

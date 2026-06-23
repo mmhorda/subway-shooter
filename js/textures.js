@@ -38,8 +38,13 @@ Game.Textures = (function() {
     var ctx = c.getContext('2d');
 
     // Base
-    ctx.fillStyle = '#d8d8d8';
+    ctx.fillStyle = '#bfc7c9';
     ctx.fillRect(0, 0, w, h);
+    var wallGrad = ctx.createLinearGradient(0, 0, 0, h);
+    wallGrad.addColorStop(0, 'rgba(255,255,255,0.24)');
+    wallGrad.addColorStop(0.55, 'rgba(20,40,50,0.04)');
+    wallGrad.addColorStop(1, 'rgba(25,22,18,0.32)');
+    ctx.fillStyle = wallGrad; ctx.fillRect(0,0,w,h);
 
     var tileW = 64, tileH = 32;
     var groutW = 3;
@@ -49,7 +54,7 @@ Game.Textures = (function() {
       for (var x = -tileW; x < w + tileW; x += tileW) {
         var tx = x + offset;
         // Tile fill with slight variation
-        var shade = 200 + Math.floor(Math.random() * 40);
+        var shade = 176 + Math.floor(Math.random() * 52);
         ctx.fillStyle = 'rgb(' + shade + ',' + (shade - 5) + ',' + shade + ')';
         ctx.fillRect(tx + groutW/2, y + groutW/2, tileW - groutW, tileH - groutW);
 
@@ -62,7 +67,7 @@ Game.Textures = (function() {
     }
 
     // Grout lines
-    ctx.strokeStyle = '#555';
+    ctx.strokeStyle = '#38464b';
     ctx.lineWidth = groutW;
     for (var y2 = 0; y2 <= h; y2 += tileH) {
       ctx.beginPath(); ctx.moveTo(0, y2); ctx.lineTo(w, y2); ctx.stroke();
@@ -78,7 +83,15 @@ Game.Textures = (function() {
       }
     }
 
-    addNoise(ctx, w, h, 20);
+    for (var sm = 0; sm < 18; sm++) {
+      var mx = Math.random()*w, my = h*0.55 + Math.random()*h*0.45;
+      var mr = 20 + Math.random()*90;
+      var mg = ctx.createRadialGradient(mx,my,0,mx,my,mr);
+      mg.addColorStop(0, 'rgba(32,28,22,0.22)');
+      mg.addColorStop(1, 'rgba(32,28,22,0)');
+      ctx.fillStyle = mg; ctx.beginPath(); ctx.arc(mx,my,mr,0,Math.PI*2); ctx.fill();
+    }
+    addNoise(ctx, w, h, 24);
     return new THREE.CanvasTexture(c);
   }
 
@@ -88,8 +101,14 @@ Game.Textures = (function() {
     var c = makeCanvas(w, h);
     var ctx = c.getContext('2d');
 
-    ctx.fillStyle = '#9a9a96';
+    var base = ctx.createLinearGradient(0, 0, w, h);
+    base.addColorStop(0, '#777b78');
+    base.addColorStop(0.5, '#9a9a92');
+    base.addColorStop(1, '#5e625f');
+    ctx.fillStyle = base;
     ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = 'rgba(20,22,22,0.16)';
+    for (var sc = 0; sc < 14; sc++) ctx.fillRect(Math.random()*w, Math.random()*h, 2 + Math.random()*10, 60 + Math.random()*180);
 
     // Large blotches
     for (var i = 0; i < 30; i++) {
@@ -312,16 +331,19 @@ Game.Textures = (function() {
 
     // Body base
     var grd = ctx.createLinearGradient(0, 0, 0, h);
-    grd.addColorStop(0, '#3a6a9a');
-    grd.addColorStop(0.5, '#4a8aaa');
-    grd.addColorStop(0.7, '#3a6a9a');
-    grd.addColorStop(1, '#284868');
+    grd.addColorStop(0, '#7f9baa');
+    grd.addColorStop(0.18, '#d8e2e6');
+    grd.addColorStop(0.48, '#7895a3');
+    grd.addColorStop(0.72, '#1f5b93');
+    grd.addColorStop(1, '#182530');
     ctx.fillStyle = grd;
     ctx.fillRect(0, 0, w, h);
 
     // Stripe
-    ctx.fillStyle = '#1a3a5a';
-    ctx.fillRect(0, h - 30, w, 8);
+    ctx.fillStyle = '#0e4f9a';
+    ctx.fillRect(0, h - 58, w, 18);
+    ctx.fillStyle = '#f3f0d8';
+    ctx.fillRect(0, h - 34, w, 8);
 
     // Windows (top row)
     var winW = 80, winH = 50, winY = 40;
@@ -452,8 +474,12 @@ Game.Textures = (function() {
     var c = makeCanvas(w, h);
     var ctx = c.getContext('2d');
 
-    ctx.fillStyle = '#888';
+    ctx.fillStyle = '#697176';
     ctx.fillRect(0, 0, w, h);
+    var cg = ctx.createRadialGradient(w/2,h/2,0,w/2,h/2,w*0.8);
+    cg.addColorStop(0, 'rgba(210,220,220,0.12)');
+    cg.addColorStop(1, 'rgba(0,0,0,0.28)');
+    ctx.fillStyle = cg; ctx.fillRect(0,0,w,h);
 
     // Panel grid
     ctx.strokeStyle = '#555';
