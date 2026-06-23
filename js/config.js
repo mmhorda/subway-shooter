@@ -85,7 +85,7 @@ Game.Config = {
     damage: 15,          // damage per hit on player
     attackCooldown: 1.0, // seconds between attacks on player
     attackRange: 1.5,    // distance to damage player
-    verticalAttackRange: 2.2, // prevents damage through ceilings/floors
+    verticalAttackRange: 0.75, // same-level melee only; prevents damage through stairs/ceilings
     radius: 0.4,
     stepUpHeight: 1.45,      // lets enemies climb from rails back onto platform/thresholds
     scale: 1.0,

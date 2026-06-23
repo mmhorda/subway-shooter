@@ -1716,7 +1716,9 @@ Game.World = (function() {
     for (var ux = 0; ux < upXs.length; ux++) {
       for (var uz = 0; uz < upZs.length; uz++) {
         var px = upXs[ux], pz = upZs[uz];
-        if (Math.abs(px) < uHoleHalf + 1 && ((pz > frontA - 2 && pz < frontB + 3) || (pz > rearA - 3 && pz < rearB + 2))) continue;
+        var nearFrontStairRing = pz > frontA - 10 && pz < frontB + 10;
+        var nearRearStairRing = pz > rearA - 10 && pz < rearB + 10;
+        if (nearFrontStairRing || nearRearStairRing) continue;
         C.addBox(px - 0.45, px + 0.45, pz - 0.45, pz + 0.45, upperFloorY, upperFloorY + upperRoomH);
       }
     }

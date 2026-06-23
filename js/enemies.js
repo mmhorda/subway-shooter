@@ -234,21 +234,40 @@ Game.Enemies = (function() {
 
   function resolveEnemyMove(x, z, radius, currentY, assistX, assistZ) {
     var groundY = getEnemyGroundHeight(x, z, currentY);
+    var W = Game.Config.world;
+    var platformHalfW = W.platformWidth / 2;
+    var platformHalfL = W.platformLength / 2;
+    var maxStepUp = (Game.Config.enemies && Game.Config.enemies.stepUpHeight) || 1.45;
 
-    // Enemy-only ledge assist: from rail bed, the enemy center can get stuck on
-    // the low platform curb before it ever samples the platform floor. Probe a
-    // short step in the movement direction; if that spot has a climbable higher
-    // floor, use it as the movement target and resolve collision at that height.
-    // Train walls and real props still block because their boxes extend through
-    // the higher collision height.
+    // Enemy-only platform-edge climb. From rail bed the enemy center is outside
+    // the platform, so ordinary floor sampling can never see the platform top.
+    // If it is near the long platform edge and moving toward it, snap the target
+    // just inside the edge at platform height, then resolve collision there.
+    // Train walls/props still block because resolveCircleBox runs at platformY.
+    if (currentY < W.platformHeight - 0.35 && Math.abs(z) <= platformHalfL + 0.2) {
+      var edgeReach = radius + 1.15;
+      var climbX = null;
+      if (x < -platformHalfW && x >= -platformHalfW - edgeReach && (assistX || 0) > 0) {
+        climbX = -platformHalfW + radius + 0.18;
+      } else if (x > platformHalfW && x <= platformHalfW + edgeReach && (assistX || 0) < 0) {
+        climbX = platformHalfW - radius - 0.18;
+      }
+      if (climbX !== null && W.platformHeight <= currentY + maxStepUp + 0.1) {
+        x = climbX;
+        groundY = W.platformHeight;
+      }
+    }
+
+    // Secondary probe for small ledges/thresholds, after the explicit platform
+    // edge snap above. This covers door thresholds without depending on one
+    // exact frame landing inside a floor collider.
     if (groundY <= currentY + 0.05 && (Math.abs(assistX || 0) > 0.001 || Math.abs(assistZ || 0) > 0.001)) {
       var assistLen = Math.sqrt(assistX * assistX + assistZ * assistZ);
       if (assistLen > 0.001) {
-        var probeDist = radius + 0.45;
+        var probeDist = radius + 0.75;
         var probeX = x + (assistX / assistLen) * probeDist;
         var probeZ = z + (assistZ / assistLen) * probeDist;
         var probeGroundY = getEnemyGroundHeight(probeX, probeZ, currentY);
-        var maxStepUp = (Game.Config.enemies && Game.Config.enemies.stepUpHeight) || 1.45;
         if (probeGroundY > groundY + 0.2 && probeGroundY <= currentY + maxStepUp + 0.1) {
           x = probeX;
           z = probeZ;
@@ -373,7 +392,7 @@ Game.Enemies = (function() {
       // The old check used X/Z distance only, so enemies directly below the
       // player could damage through the ceiling / upper floor.
       var dy = Math.abs((playerPos.y || 0) - group.position.y);
-      var verticalAttackRange = E.verticalAttackRange || 2.2;
+      var verticalAttackRange = E.verticalAttackRange || 0.75;
       var dist3D = Math.sqrt(dx * dx + dz * dz + dy * dy);
       if (dist3D < E.attackRange && dy <= verticalAttackRange) {
         var now = performance.now() / 1000;
